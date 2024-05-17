@@ -27,8 +27,7 @@ rr <- rtimeroc(obj = test, censor.rate = 0.1, n=500,
 
 cc <- timeroc_fit(x=rr$x, t=rr$t, event=rr$event, obj = test)
 
-jj <- timeroc_predict(cc, t = quantile(rr$t, probs = c(0.25,0.5,0.75)),
-                      B = 500)
+jj <- timeroc_predict(cc, t = quantile(rr$t, probs = c(0.25,0.5,0.75)))
 
 timeroc_auc(jj)
 }
