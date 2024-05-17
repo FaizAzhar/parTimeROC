@@ -1,0 +1,39 @@
+Package: parTimeROC
+Title: Parametric Time-Dependent ROC
+Version: 0.1.0
+Authors@R: 
+    person("Faiz", "Azhar", , "ahmad97@graduate.utm.my", role = c("aut", "cre"),
+           comment = c(ORCID = "0009-0003-8017-2565"))
+Maintainer: Faiz Azhar <ahmad97@graduate.utm.my>
+Description: The goal of parTimeROC is to store methods and procedures needed to run the time-dependent ROC analysis parametrically. This package adopts two different theoretical framework to produce the ROC curve which are from the proportional hazard model and copula function. Currently, this package only able to run analysis for single covariate/biomarker with survival time. The future direction for this work is to be able to include analysis for multiple biomarkers with longitudinal measurements.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.1
+Biarch: true
+Depends: 
+    R (>= 3.4.0)
+Imports: 
+    methods,
+    Rcpp (>= 0.12.0),
+    RcppParallel (>= 5.0.1),
+    rstan (>= 2.18.1),
+    rstantools (>= 2.3.1),
+    cubature,
+    DescTools,
+    flexsurv (>= 2.2.2),
+    graphics,
+    Matrix,
+    mvtnorm,
+    sn (>= 2.1.1),
+    stats,
+    survival (>= 3.5.5),
+    VineCopula (>= 2.4.5)
+LinkingTo: 
+    BH (>= 1.66.0),
+    Rcpp (>= 0.12.0),
+    RcppEigen (>= 0.3.3.3.0),
+    RcppParallel (>= 5.0.1),
+    rstan (>= 2.18.1),
+    StanHeaders (>= 2.18.0)
+SystemRequirements: GNU make
