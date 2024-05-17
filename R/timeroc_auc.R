@@ -25,12 +25,12 @@
 timeroc_auc <- function(obj){
   if(!inherits(obj, 'predictTROC')) stop("Please provide a predictTROC object")
   res <- data.frame('time' = names(obj),
-                    # 'assoc' = NA,
+                    'assoc' = NA,
                     'est.auc' = NA,
                     'low.auc' = NA,
                     'upp.auc' = NA)
   for(i in seq_len(length(obj))){
-    # res$assoc[i] <- obj[[i]][1,7]
+    res$assoc[i] <- obj[[i]][1,7]
     res$est.auc[i] <- AUC(1-obj[[i]][,2],obj[[i]][,1])
     res$low.auc[i] <- AUC(1-obj[[i]][,4],obj[[i]][,3])
     res$upp.auc[i] <- AUC(1-obj[[i]][,6],obj[[i]][,5])

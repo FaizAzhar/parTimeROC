@@ -11,8 +11,8 @@
 #' @param init.param.copula An integer of starting value for copula parameter.\cr
 #' @param init.param.ph An integer of starting value for association parameter.\cr
 #' @param ci An integer 0 to 1 for confidence level.\cr
-#' @param type A string specifying type of estimation. (Default = 'mle') \cr
-#' @returns return a list of MLE estimator.
+#' @param method A string specifying method of estimation. (Default = 'mle') \cr
+#' @returns return a list of frequentist or bayesian estimator.
 #' @examples
 #' ## fitting copula model
 #' test <- timeroc_obj(dist = 'gompertz-gompertz-copula', copula = "gumbel90")
@@ -43,7 +43,7 @@
 #' @importFrom stats qnorm
 timeroc_fit <- function(obj, x, t, event, init.param.x = NULL, init.param.t= NULL,
                     init.param.copula = NULL, init.param.ph = NULL, ci = 0.95,
-                    type = "mle"){
+                    method = "mle"){
   if (missing(x) | missing(t) | missing(event)) stop("Please provide data for X, T and Event")
 
   ## preprocessing of arguments
@@ -61,14 +61,14 @@ timeroc_fit <- function(obj, x, t, event, init.param.x = NULL, init.param.t= NUL
   else as.list(init.param.t)
 
   ## Fit x
-  res.x <- fit.x(x, type, x.dist, init.param.x, ci)
+  res.x <- fit.x(x, method, x.dist, init.param.x, ci)
 
   ## Fit t
-  res.t <- fit.t(x, t, event, type, t.dist, init.param.t, init.param.ph, is.list(copula), ci)
+  res.t <- fit.t(x, t, event, method, t.dist, init.param.t, init.param.ph, is.list(copula), ci)
 
   ##Fit Copula
   if (is.list(copula)){
-    res.c <- fit.copula(x, t, event, type, res.x, res.t, x.dist, t.dist, init.param.copula, copula, ci)
+    res.c <- fit.copula(x, t, event, method, res.x, res.t, x.dist, t.dist, init.param.copula, copula, ci)
 
     out <- list(name = obj$dist, name.copula = obj$copula$cop.abbr,
                 dat = data.frame(x=x,t=t,event=event), x = res.x, t = res.t,
@@ -83,7 +83,7 @@ timeroc_fit <- function(obj, x, t, event, init.param.x = NULL, init.param.t= NUL
   return(out)
 }
 
-fit.copula <- function(x, t, event, type, res.x, res.t, x.dist, t.dist, init.param.copula, copula, ci){
+fit.copula <- function(x, t, event, method, res.x, res.t, x.dist, t.dist, init.param.copula, copula, ci){
 
   Call3 <- match.call(expand.dots = TRUE)
   res.c <- list()
@@ -104,7 +104,7 @@ fit.copula <- function(x, t, event, type, res.x, res.t, x.dist, t.dist, init.par
   log.dt <- eval(dt)
 
   ##Fit Copula
-  if (type == "mle" | type == "bayes"){
+  if (method == "mle" | method == "bayes"){
     ll.c <- function(parms, ...){
       likeli <- event*(log(copula$density[[2]](u, v,
                                                family = copula$family,
@@ -123,7 +123,7 @@ fit.copula <- function(x, t, event, type, res.x, res.t, x.dist, t.dist, init.par
     Call3$upper <- copula$upper
     Call3$method <- "L-BFGS-B"
     res.c <- eval.parent(Call3)
-    # if(res.c$convergence > 0L) stop("copula optimization failed")
+    if(res.c$convergence > 0L) stop("copula optimization failed. Consider method = `bayes`")
     res.c$cov <- .hess_to_cov(res.c$hessian)
     se <- sqrt(diag(res.c$cov))
     res.c$ubound <- res.c$par + qnorm(1 - (1 - ci)/2)*se
@@ -138,13 +138,13 @@ fit.copula <- function(x, t, event, type, res.x, res.t, x.dist, t.dist, init.par
   return(res.c)
 }
 
-fit.t <- function(x, t, event, type, t.dist, init.param.t, init.param.ph, iscopula, ci){
+fit.t <- function(x, t, event, method, t.dist, init.param.t, init.param.ph = NULL, iscopula, ci){
 
   Call2 <- match.call(expand.dots = TRUE)
   res.t <- list()
 
   ## Fit t
-  if (type == "mle"){
+  if (method == "mle"){
     Call2[[1L]] <- quote(stats::optim)
     if (!iscopula){
       ll.t <- function(parms, ...){
@@ -173,7 +173,7 @@ fit.t <- function(x, t, event, type, t.dist, init.param.t, init.param.ph, iscopu
     Call2$upper <- c(t.dist$upper, Inf)
     Call2$method <- "L-BFGS-B"
     res.t <- eval.parent(Call2)
-    #if(res.t$convergence > 0L) stop("Time-to-event optimization failed")
+    # if(res.t$convergence > 0L) stop("Time-to-event optimization failed. Consider method = `bayes`")
     if (!iscopula) {
       names(res.t$par) <- c(t.dist$pars,'beta')
     } else {names(res.t$par) <- t.dist$pars}
@@ -183,7 +183,7 @@ fit.t <- function(x, t, event, type, t.dist, init.param.t, init.param.ph, iscopu
     res.t$lbound <- res.t$par - qnorm(1 - (1 - ci)/2)*se
     res.t$se <- se
     res.t$aic <- 2 * length(res.t$par) + 2 * res.t$value
-  }else if (type == "bayes" & !iscopula){
+  }else if (method == "bayes" & !iscopula){
     p <- 1
     baseline_t <- set_baseline(t.dist$name.abbr)
     stan_data <- list(time = t, event = event,
@@ -201,7 +201,7 @@ fit.t <- function(x, t, event, type, t.dist, init.param.t, init.param.ph, iscopu
     res.t$Rhat <- summary.t[["summary"]][-NN,7]
     names(res.t$ubound) <- names(res.t$lbound) <- names(res.t$se) <- names(res.t$n_eff) <- names(res.t$Rhat) <- names(res.t$par) <- c("beta",t.dist$pars)
     res.t$aic <- NA
-  }else if (type == "bayes" & iscopula){
+  }else if (method == "bayes" & iscopula){
     baseline_t <- set_baseline(t.dist$name.abbr)
     stan_data <- list(X = t, n = length(t),
                       baseline = baseline_t)
@@ -222,13 +222,13 @@ fit.t <- function(x, t, event, type, t.dist, init.param.t, init.param.ph, iscopu
   return(res.t)
 }
 
-fit.x <- function(x, type, x.dist, init.param.x, ci){
+fit.x <- function(x, method, x.dist, init.param.x, ci){
 
   Call <- match.call(expand.dots = TRUE)
   res.x <- list()
 
   ## Fit x
-  if (type == "mle"){
+  if (method == "mle"){
     ll.x <- function(parms, ...){
       names(parms) <- names(x.dist$pars)
       d <- as.call(c(list(x.dist$density[[2]],x=x,log=TRUE), as.list(parms)))
@@ -245,14 +245,14 @@ fit.x <- function(x, type, x.dist, init.param.x, ci){
     else Call$method <- "Brent"
 
     res.x <- eval.parent(Call)
-    if(res.x$convergence > 0L) stop("biomarker optimization failed")
+    if(res.x$convergence > 0L) stop("biomarker optimization failed. Consider method = `bayes`")
     res.x$cov <- .hess_to_cov(res.x$hessian)
     se <- sqrt(diag(res.x$cov))
     res.x$ubound <- res.x$par + qnorm(1 - (1 - ci)/2)*se
     res.x$lbound <- res.x$par - qnorm(1 - (1 - ci)/2)*se
     res.x$se <- se
     res.x$aic <- 2 * length(res.x$par) + 2 * res.x$value
-  } else if (type == "bayes"){
+  } else if (method == "bayes"){
     baseline_x <- set_baseline(x.dist$name.abbr)
     stan_data <- list(X = x, n = length(x),
                       baseline = baseline_x)

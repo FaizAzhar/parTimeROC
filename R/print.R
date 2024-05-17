@@ -11,23 +11,24 @@ print.TimeROC <- function(x, ...){
 
 #' @export
 print.fitTROC <- function(x, ...){
-  i <- length(x$t$par)
-  j <- ifelse(is.null(x$copula),i-1,i)
+  if(is.null(x$copula)){
+    tparname <- !(names(x$t$par) %in% c("beta"))
+    b.dat <- data.frame(est = round(x$t$par["beta"],4),
+                        low = round(x$t$lbound["beta"],4),
+                        upper = round(x$t$ubound["beta"],4),
+                        se = round(x$t$se["beta"],4))
+  } else tparname <- names(x$t$par)
 
   x.dat <- data.frame(est = round(x$x$par,4),
                       low = round(x$x$lbound,4),
                       upper = round(x$x$ubound,4),
                       se = round(x$x$se,4))
 
-  t.dat <- data.frame(est = round(x$t$par[1:j],4),
-                      low = round(x$t$lbound[1:j],4),
-                      upper = round(x$t$ubound[1:j],4),
-                      se = round(x$t$se[1:j],4))
+  t.dat <- data.frame(est = round(x$t$par[tparname],4),
+                      low = round(x$t$lbound[tparname],4),
+                      upper = round(x$t$ubound[tparname],4),
+                      se = round(x$t$se[tparname],4))
 
-  b.dat <- data.frame(est = round(x$t$par[i],4),
-                      low = round(x$t$lbound[i],4),
-                      upper = round(x$t$ubound[i],4),
-                      se = round(x$t$se[i],4))
   if(!is.null(x$copula)){
     c.dat <- data.frame(est = round(x$copula$par,4),
                         low = round(x$copula$lbound,4),

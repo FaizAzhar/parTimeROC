@@ -7,6 +7,9 @@
 #' @param cutoff A numeric specifying total cutoff point on ROC curve.\cr
 #' @param t A numeric/vector specifying time point of interest. (Default: Time-to-event at 50th quantile points)\cr
 #' @param newx A numeric/vector specifying biomarker of interest.\cr
+#' @param type A string indicate type of analysis to run. (Default = 'standard')\cr
+#' @param method A string specifying method of estimation. (Default = 'mle') \cr
+#' @param ci An integer 0 to 1 for confidence level.\cr
 #' @param params.x A named vector for biomarker's parameter.\cr
 #' @param params.t A named vector for time-to-event's parameter.\cr
 #' @param copula A string indicating the type of copula to be used.\cr
@@ -47,12 +50,14 @@
 #'
 #' @returns A list of ROC dataframe for each specified time-to-event.
 #' @export
-timeroc_predict <- function(obj, B = 1, newx, cutoff = 100, t,
-                         params.x, params.t, copula,
-                         params.copula, params.ph){
+timeroc_predict <- function(obj, B = 1, newx, cutoff = 100, t, type = 'standard',
+                         params.x, params.t, copula, method = 'mle',
+                         params.copula, params.ph, ci=0.95){
 
   ## preprocessing of arguments
-  cov.x <- cov.t <- se.c <- x.val <- dist.x <- dist.t <- ci <- dat <- NULL
+  se.x <- se.t <- se.c <- x.val <- name.dist.x <- name.dist.t <- dat <- NULL
+  x.dist <- t.dist <- iscopula <- NULL
+
   if(inherits(obj, 'fitTROC')){
     args <- preproc(c(as.list(environment()), call = match.call()),
                   extract_from_fitTROC)
@@ -63,114 +68,137 @@ timeroc_predict <- function(obj, B = 1, newx, cutoff = 100, t,
 
   list2env(args, environment())
 
-  ### ToDo: Future work for landmark analysis
-  # res <- c()
-  # for(ttime in t){
-  #   subdat <- dat
-  #   subdat[which(dat$t > ttime),3] <- 0
-  #   fitval <- timeroc_fit(obj, x = subdat$x, t = subdat$t, event = subdat$event)
-  #   params.x <- fitval$x$par
-  #   cov.x <- fitval$x$cov
-  #   if(!missing(params.copula)){
-  #     params.t <- fitval$t$par
-  #     params.copula <- fitval$copula$par
-  #     se.c <- fitval$copula$se
-  #     copula <- obj$copula$cop.abbr}
-  #   else{
-  #     params.t <- fitval$t$par[-length(fitval$t$par)]
-  #     params.ph <- fitval$t$par[length(fitval$t$par)]
-  #     cov.t <- fitval$t$cov}
-  #
-  #   pargs <- list(par.x = params.x, par.t = params.t,
-  #                 copula = copula,
-  #                 par.cop = ifelse((!missing(params.copula)),params.copula,NA),
-  #                 par.ph = ifelse((!missing(params.ph)),params.ph,NA),
-  #                 cov.x = cov.x, cov.t = cov.t, se.c = se.c,
-  #                 t = ttime)
-  #   sim.par <- do.call(pars.boot,list(X=x.val, boot.val=B, pargs=pargs))
-  #   ret <- do.call(troc.curve,list(pars=sim.par, cutoff=x.val, t=ttime,
-  #                                  x.dist = dist.x, t.dist = dist.t,
-  #                                  copula = copula, ci = ci))
-  #   res <- c(res,ret)
-  # }
+  if(type == 'landmark'){
+    res <- analysis.landmark(dat = dat, method = method, x.dist = x.dist, params.x = params.x,
+                             ci = ci, t.dist = t.dist, params.t = params.t,
+                             params.copula = params.copula, iscopula = iscopula, t = t,
+                             copula = copula, se.x = se.x, se.t = se.t, se.c = se.c,
+                             B = B, params.ph = params.ph, xval = xval)
+  } else if(type == 'standard'){
+    res <- analysis.standard(iscopula = iscopula, params.x = params.x,
+                             params.t = params.t, params.copula = params.copula,
+                             params.ph = params.ph, se.x = se.x, se.t = se.t,
+                             se.c = se.c, B = B, xval = xval,
+                             t = t, x.dist = x.dist, t.dist = t.dist,
+                             copula = copula, ci = ci)
+  }
 
-  pargs <- list(par.x = params.x, par.t = params.t,
-                copula = copula,
-                par.cop = ifelse((!missing(params.copula)),params.copula,NA),
-                par.ph = ifelse((!missing(params.ph)),params.ph,NA),
-                cov.x = cov.x, cov.t = cov.t, se.c = se.c,
-                t = t)
-
-  sim.par <- do.call(pars.boot,list(X=x.val, boot.val=B, pargs=pargs))
-  res <- do.call(troc.curve,list(pars=sim.par, cutoff=x.val, t=t,
-                                 x.dist = dist.x, t.dist = dist.t,
-                                 copula = copula, ci = ci))
   class(res) <- "predictTROC"
   return(res)
 }
 
 # --------------------------------------
+# function to run standard analysis.
+analysis.standard <- function(iscopula, params.x, params.t, params.copula = NULL,
+                              params.ph = NULL, se.x, se.t, se.c = NULL, B, xval, t,
+                              x.dist, t.dist, copula = NULL, ci){
 
-#' troc.curve
-#'
-#' @description helper function to estimate sensitivity and specificity.
-#'
-#' @param pars A list of vector specifying the parameters for X, T and PH/copula.\cr
-#' @param cutoff A vector of integer specifying the biomarker value to be used in the ROC computation.\cr
-#' @param t A vector of integer specifying the time to produce the ROC curve.\cr
-#' @param x.dist A string to specify the biomarker distribution.\cr
-#' @param t.dist A string to specify the time-to-event distribution.\cr
-#' @param copula A string to specify the copula distribution.\cr
-#' @param ci An integer to specify the confidence interval for the estimated ROC curve.\cr
-#' @returns A list of dataframe.
-#' @keywords internal
-troc.curve <- function(pars, cutoff, t, x.dist, t.dist, copula, ci){
-  if(is.null(pars$par.c)) model <- 'ph'
-  else model <- 'copula'
-  est <- do.call(timeroc,list(pars=pars, cutoff=cutoff, t=t, model=model,
-                     x.dist = x.dist, t.dist = t.dist, copula = copula,
-                     ci = ci))
-  return(est)
+  if(iscopula == 1){
+    pargs <- list(par.x = params.x, par.t = params.t,
+                  par.cop = params.copula,
+                  se.x = se.x, se.t = se.t, se.c = se.c)
+    sim.par <- do.call(pars.boot,list(boot.val=B, pargs=pargs, iscopula=iscopula))
+    ret <- do.call(timeroc,list(pars=sim.par, cutoff=xval, t=t, model=iscopula,
+                                x.dist = x.dist, t.dist = t.dist, copula = copula,
+                                ci = ci))
+    for(i in 1:length(ret)){ret[[i]] <- cbind(ret[[i]], assoc = params.copula)}
+  } else if (iscopula == 0){
+    pargs <- list(par.x = params.x, par.t = params.t, par.ph = params.ph,
+                  se.x = se.x, se.t = se.t)
+    sim.par <- do.call(pars.boot,list(boot.val=B, pargs=pargs, iscopula=iscopula))
+    ret <- do.call(timeroc,list(pars=sim.par, cutoff=xval, t=t, model=iscopula,
+                                x.dist = x.dist, t.dist = t.dist,
+                                ci = ci))
+    for(i in 1:length(ret)){ret[[i]] <- cbind(ret[[i]], assoc = params.ph)}
+  }
+  return(ret)
 }
 
 # --------------------------------------
+# function to run landmark analysis.
+analysis.landmark <- function(dat, method, x.dist, params.x, ci, t.dist, params.t,
+                              params.copula = NULL, iscopula, t, copula = NULL,
+                              se.x, se.t, se.c = NULL, B, params.ph = NULL, xval){
+  ## ToDo: Future work for landmark analysis
+  res <- c()
+  fitted.x <- fit.x(x = dat$x, method = method, x.dist = x.dist,
+                    init.param.x = params.x, ci = ci)
 
-#' pars.boot
-#'
-#' @description helper function to generate random parameters used in bootstrap process.
-#'
-#' @param X A sequence of integer specifying the cutoff to be used.\cr
-#' @param boot.val An integer specifying the iteration for the bootstrap process.\cr
-#' @param pargs A list of named vector specifying the parameters for X, T and PH/copula.\cr
-#' @returns A list of random parameters.
-#' @keywords internal
+  if(iscopula == 1){
+    fitted.t <- fit.t(x = dat$x, t = dat$t, event = dat$event,
+                      method = method, t.dist = t.dist,
+                      init.param.t = params.t,
+                      iscopula = iscopula, ci = ci)
+
+    for(ttime in t){
+      subdat <- as.data.frame(dat)
+      subdat[which(dat$t > ttime),3] <- 0
+
+      fitted.copula <- fit.copula(x = subdat$x, t = subdat$t, event = subdat$event,
+                                  method = method, res.x = fitted.x, res.t = fitted.t,
+                                  x.dist = x.dist, t.dist = t.dist,
+                                  init.param.copula = params.copula, copula = copula, ci = ci)
+
+      pargs <- list(par.x = fitted.x$par, par.t = fitted.t$par,
+                    par.cop = fitted.copula$par,
+                    se.x = fitted.x$se, se.t = fitted.t$se, se.c = fitted.copula$se)
+
+      sim.par <- do.call(pars.boot,list(boot.val=B, pargs=pargs, iscopula=iscopula))
+      ret <- do.call(timeroc,list(pars=sim.par, cutoff=xval, t=ttime, model=iscopula,
+                                  x.dist = x.dist, t.dist = t.dist, copula = copula,
+                                  ci = ci))
+      ret[[1]] <- cbind(ret[[1]], assoc = fitted.copula$par)
+      res <- c(res,ret)
+    }
+  } else if (iscopula == 0){
+    for(ttime in t){
+      subdat <- dat
+      subdat[which(dat$t > ttime),3] <- 0
+      fitted.t <- fit.t(x = subdat$x, t = subdat$t, event = subdat$event,
+                        method = method, t.dist = t.dist, init.param.t = params.t,
+                        init.param.ph = params.ph, iscopula = iscopula, ci = ci)
+      tname <- !(names(fitted.t$par) %in% c("beta"))
+      pargs <- list(par.x = fitted.x$par, par.t = fitted.t$par[tname],
+                    par.ph = fitted.t$par["beta"],
+                    se.x = se.x, se.t = se.t)
+      sim.par <- do.call(pars.boot,list(boot.val=B, pargs=pargs, iscopula=iscopula))
+      ret <- do.call(timeroc,list(pars=sim.par, cutoff=xval, t=ttime, model=iscopula,
+                                  x.dist = x.dist, t.dist = t.dist,
+                                  ci = ci))
+      ret[[1]] <- cbind(ret[[1]], assoc = fitted.t$par["beta"])
+      res <- c(res,ret)
+    }
+  }
+  return(res)
+}
+
+# --------------------------------------
+# helper function to generate random parameters used in bootstrap process.
 #' @importFrom mvtnorm rmvnorm
 #' @importFrom stats rnorm
-pars.boot <- function(X, boot.val, pargs){
-  i <- ifelse(is.na(pargs$par.cop),0,1)
+pars.boot <- function(boot.val, pargs, iscopula){
   sim <- list()
   if(boot.val <= 1){
     sim$par.x <- matrix(rep(pargs$par.x,2),ncol=length(pargs$par.x), byrow=T)
     colnames(sim$par.x) <- names(pargs$par.x)
     sim$par.t <- matrix(rep(pargs$par.t,2),ncol=length(pargs$par.t), byrow=T)
     colnames(sim$par.t) <- names(pargs$par.t)
-    if(i==0){
+    if(iscopula==0){
       sim$par.b <- matrix(rep(pargs$par.ph,2),ncol=length(pargs$par.ph), byrow=T)
       colnames(sim$par.b) <- names(pargs$par.ph)
     } else {
       sim$par.c <- matrix(rep(pargs$par.cop,2),ncol=length(pargs$par.cop), byrow=T)
       colnames(sim$par.c) <- names(pargs$par.cop)
     }
-
     return(sim)
   } else{
-      sim$par.x <- rmvnorm(boot.val, pargs$par.x,pargs$cov.x)
-      if(i==0){
-        sim$par.t <- rmvnorm(boot.val, c(pargs$par.t,pargs$par.ph), pargs$cov.t)
-        sim$par.b <- sim$par.t[,length(ncol(sim$par.t))]
-        sim$par.t <- sim$par.t[,-ncol(sim$par.t)]
+      sim$par.x <- rmvnorm(boot.val, pargs$par.x, diag(pargs$se.x))
+      if(iscopula==0){
+        sim$par.t <- rmvnorm(boot.val, c(pargs$par.t,pargs$par.ph), diag(pargs$se.t))
+        sim$par.b <- sim$par.t[,'beta']
+        sim$par.t <- sim$par.t[,-'beta']
       } else {
-        sim$par.t <- rmvnorm(boot.val, c(pargs$par.t), pargs$cov.t)
+        sim$par.t <- rmvnorm(boot.val, c(pargs$par.t), diag(pargs$se.t))
         sim$par.c <- rnorm(boot.val, pargs$par.cop, pargs$se.c)
       }
       return(sim)
@@ -178,30 +206,15 @@ pars.boot <- function(X, boot.val, pargs){
 }
 
 # --------------------------------------
-
-#' timeroc
-#'
-#' @description helper function that automatically called within troc_curve function.
-#'
-#' @param model A string of either PH/copula.\cr
-#' @param pars A list of X, T and PH/copula parameters.\cr
-#' @param t A vector of integer specifying the time to produce the ROC curve.\cr
-#' @param cutoff A vector of integer specifying the biomarker value needed for sensitivity & specificity computation.\cr
-#' @param x.dist A string specifying the biomarker distribution.\cr
-#' @param t.dist A string specifying the time-to-event distribution.\cr
-#' @param copula A string specifying the type of copula.\cr
-#' @param ci An integer specifying the confidence interval for the estimated ROC curve.\cr
-#' @keywords internal
-timeroc <- function(model, pars, t, cutoff, x.dist, t.dist, copula, ci){
-
-  xfn <- get.distributions[[x.dist]]$density
-  tfn <- get.distributions[[t.dist]]$density
-  if(x.dist == "skewnormal") class(xfn) <- "snorm" # there is no sn::psn(..,lower.tail=F)
-  if(t.dist == "skewnormal") class(tfn) <- "snorm"
-  if(model == 'copula') {
-    cfn <- get.copula[[copula]]
+# helper function to compute sensitivity and specificity
+timeroc <- function(model, pars, t, cutoff, x.dist, t.dist, copula=NULL, ci){
+  xfn <- x.dist$density
+  tfn <- t.dist$density
+  if(x.dist$name.abbr == "skewnormal") class(xfn) <- "snorm" # there is no sn::psn(..,lower.tail=F)
+  if(t.dist$name.abbr == "skewnormal") class(tfn) <- "snorm"
+  if(model == 1) { #iscopula = 1
     est <- do.call(roc.cop,list(x = cutoff, t = t, xfn = xfn, tfn = tfn,
-                                cfn = cfn, pars = pars, ci = ci))
+                                cfn = copula, pars = pars, ci = ci))
   } else {
     est <- do.call(roc.ph,list(x = cutoff, t = t, xfn = xfn, tfn = tfn,
                                pars = pars, ci = ci))
@@ -211,17 +224,7 @@ timeroc <- function(model, pars, t, cutoff, x.dist, t.dist, copula, ci){
 }
 
 # --------------------------------------
-
-#' roc.ph
-#'
-#' @description Function that will be automatically called within troc_curve & timeroc to compute sensitivity and specificity of a PH mdoel.
-#' @param x An integer vector specifying the biomarker value.\cr
-#' @param t An integer vector specifying the time to produce the ROC curve.\cr
-#' @param xfn A list of functions used to compute the biomarker distribution.\cr
-#' @param tfn A list of functions used to compute the time-to-event distribution.\cr
-#' @param pars A list of vector specifying the estimated X, T and PH/copula parameter.\cr
-#' @param ci An integer specifying the confidence interval of the ROC curve.\cr
-#' @keywords internal
+# Function that will be automatically called within timeroc to compute sensitivity and specificity of a PH mdoel.
 #' @importFrom cubature hcubature
 #' @importFrom stats quantile na.omit
 roc.ph <- function(x,t, xfn, tfn, pars, ci){
