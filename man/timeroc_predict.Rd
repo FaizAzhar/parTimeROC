@@ -10,11 +10,14 @@ timeroc_predict(
   newx,
   cutoff = 100,
   t,
+  type = "standard",
   params.x,
   params.t,
   copula,
+  method = "mle",
   params.copula,
-  params.ph
+  params.ph,
+  ci = 0.95
 )
 }
 \arguments{
@@ -28,15 +31,21 @@ timeroc_predict(
 
 \item{t}{A numeric/vector specifying time point of interest. (Default: Time-to-event at 50th quantile points)\cr}
 
+\item{type}{A string indicate type of analysis to run. (Default = 'standard')\cr}
+
 \item{params.x}{A named vector for biomarker's parameter.\cr}
 
 \item{params.t}{A named vector for time-to-event's parameter.\cr}
 
 \item{copula}{A string indicating the type of copula to be used.\cr}
 
+\item{method}{A string specifying method of estimation. (Default = 'mle') \cr}
+
 \item{params.copula}{An integer specifying the copula's parameter.\cr}
 
 \item{params.ph}{An integer specifying the PH parameter.\cr}
+
+\item{ci}{An integer 0 to 1 for confidence level.\cr}
 }
 \value{
 A list of ROC dataframe for each specified time-to-event.

@@ -60,6 +60,7 @@ TimeROC_predict_process <- function(args){
   if (!all(is.na(args$obj$params.t)))args$params.t <- args$obj$params.t
   if (!is.na(args$obj$params.copula))args$params.copula <- args$obj$params.copula
   if (!is.na(args$obj$params.ph))args$params.ph <- args$obj$params.ph
+
   args$name.dist.x <- args$obj$x.dist$name.abbr
   args$name.dist.t <- args$obj$t.dist$name.abbr
   args$x.dist <- args$obj$x.dist
@@ -79,13 +80,10 @@ TimeROC_predict_process <- function(args){
 
   args$se.x <- rep(1,length(args$params.x))
   names(args$se.x) <- names(args$params.x)
-  if(!is.null(args$params.copula)) {
-    args$se.t <- rep(1,length(args$params.t)+1)
-    names(args$se.t) <- c(names(args$params.t),'beta')
-  }  else {
-    args$se.t <- rep(1,length(args$params.t))
-    names(args$se.t) <- names(args$params.t)
-  }
+  args$se.t <- rep(1,length(args$params.t))
+  names(args$se.t) <- names(args$params.t)
+  if(is.null(args$params.copula)) args$se.ph <- 1
+  else args$se.ph <- NA
   if(!is.null(args$params.copula)) args$se.c <- 1
   else args$se.c <- NA
 
@@ -125,13 +123,16 @@ extract_from_fitTROC <- function(args){
   args$params.copula <- out$params.copula
   args$params.ph <- out$params.ph
   args$se.x <- args$obj$x$se
-  args$se.t <- args$obj$t$se
+  args$se.t <- args$obj$t$se[j]
   args$xval <- if(is.symbol(args$newx)) {seq(min(args$obj$dat[,1]),
                                                 max(args$obj$dat[,1]),
                                                 length.out = args$cutoff)} else{args$newx}
 
   if(is.symbol(args$t)) args$t <- stats::quantile(args$obj$dat[,2],
                                               probs = 0.5)
+
+  if(is.null(args$params.copula)) args$se.ph <- args$obj$t$se['beta']
+  else args$se.ph <- NA
   if(!is.null(args$params.copula)) args$se.c <- args$obj$copula$se
   else args$se.c <- NA
 

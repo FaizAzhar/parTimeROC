@@ -29,6 +29,8 @@ You can install the development version of parTimeROC from [GitHub](https://gith
 devtools::install_github("FaizAzhar/parTimeROC")
 ```
 
+Since this package also include the bayesian estimation procedure (rstan), please ensure to follow the correct installation setup such as demonstrated in this [article](https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started).
+
 ## Theoretical Framework
 
 A receiver operating characteristics (ROC) curve is a curve that measures a model's accuracy to correctly classify a population into a binary status (eg: dead/alive). The curve acts as a tool for analysts to compare which model is suitable to be used as a classifiers. However, in survival analysis, it is noted that the status of population fluctuate across time. Thus, a standard ROC analysis might underestimates the true accuracy measurement that the classification model have. In a situation where the population might enter or exit any of the two status over time, including the time component into the ROC analysis is shown to be superior and can help analysts to assess the performance of the model's accuracy over time. In addition, a time-dependent ROC can also show at which specific time point a model will have a similar performance measurement with other model.
@@ -76,11 +78,15 @@ plot(t~x, rr)
 
 ### `timeroc_fit`
 
-We also can fit datasets that have time-to-event, covariates and status columns with the PH or copula model using the `parTimeROC::timeroc_fit()`.
+We can also fit datasets that have time-to-event, covariates and status columns with the PH or copula model using the `parTimeROC::timeroc_fit()`.
 
 For PH model, two fitting processes are done. One is to fit the biomarker distribution alone. Another is to fit the time-to-event that is assumed to follow a proportional hazard model.
 
 Meanwhile, for copula method, the IFM technique is used due to its light computational requirement. Three fitting processes are conducted. One is to fit the marginal distribution for biomarker, another is to fit the marginal time-to-event. And lastly is to fit the copula function. 
+
+User can choose to conduct the model fitting procedure based on the frequentist or bayesian approach by specifying the `method = 'mle'` or `method = 'bayes'` within the `parTimeROC::timeroc_fit()` function.
+
+By default, the frequentist approach is used to estimate the model's parameters.
 
 ```{r example3}
 library(parTimeROC)
@@ -149,6 +155,12 @@ timeroc_gof(jj)
 
 Finally, after fitting process, we can predict the value of sensitivity and specificity of the covariates at specific time point using the `parTimeROC::timeroc_predict()` function. This will return a list of dataframe for each specified time.
 
+To generate the ROC curve, user can choose to conduct the prediction procedure using the `type = 'standard'` or `type = 'landmark'` approach. 
+
+By default, the `type = 'standard'` analysis will be used to produce the ROC curve at different time point. After model fitting procedure, the estimated parameters will be extracted and used to compute the ROC at the specified time of interest. 
+
+Meanwhile for the `type = 'landmark'` analysis, at each time point of interest, the status of each observation will be updated prior running the model fitting procedure. Hence, in landmark analysis, the fitting procedure will be conducted multiple times. At each time of interest, the updated estimators are then used to produce the ROC curve.
+
 ```{r example4, fig.cap = 'Fig.6. ROC curve at 25th & 50th quantile points of time-to-event', fig.align = 'center'}
 library(parTimeROC)
 # Copula model
@@ -166,7 +178,7 @@ plot(x = 1-jj[[1]][,2], y = jj[[1]][,1], type = 'l')
 lines(x = 1-jj[[2]][,2], y = jj[[2]][,1], col = 'blue')
 ```
 
-We also can specify the number of bootstrap process that we want if confidence interval of the ROC curve need to be computed. The bootstrap procedure can be achieved by supplying `B = bootstrap value` into the `parTimeROC::timeroc_predict()` function.
+We can also specify the number of bootstrap process that we want if confidence interval of the ROC curve need to be computed. The bootstrap procedure can be achieved by supplying `B = bootstrap value` into the `parTimeROC::timeroc_predict()` function.
 
 ```{r example5, fig.cap = 'Fig.7. 95% boot confidence interval of ROC curve at 25th time-to-event', fig.align = 'center'}
 library(parTimeROC)

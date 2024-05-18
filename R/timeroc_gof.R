@@ -49,34 +49,33 @@
 
 timeroc_gof <- function(obj){
   ## preprocessing of arguments
-  params.t <- params.x <- copula <- params.ph <- params.copula <- dist.t <- dist.x <- NULL
+  params.t <- params.x <- copula <- params.ph <- params.copula <- NULL
+  iscopula <- x.dist <- t.dist <- NULL
   df <- obj$dat
+
   args <- preproc(c(as.list(environment()), call = match.call()),
                   extract_from_fitTROC)
   list2env(args, environment())
 
-  tdist <- get.distributions[[dist.t]]
-  xdist <- get.distributions[[dist.x]]
-
   DescTools::DescToolsOptions(stamp=NULL)
 
-  if(is.na(copula)){
+  if(!iscopula){
     layout(matrix(c(1, 2), nrow = 1, ncol = 2))
 
     # QQ plot X
     pp <- ppoints(nrow(df))
-    theoretical.q <- as.call(c(list(xdist$density[[4]], p = pp), as.list(params.x)))
+    theoretical.q <- as.call(c(list(x.dist$density[[4]], p = pp), as.list(params.x)))
     theo.q <- eval(theoretical.q)
     ks_x <- ks.test(df$x,theo.q)
     DescTools::PlotQQ(df$x, function(p){
-      qq <- as.call(c(list(xdist$density[[4]],p=p),params.x))
+      qq <- as.call(c(list(x.dist$density[[4]],p=p),params.x))
       eval(qq)},
       main = paste0("Biomarker (K-S : p = ",round(ks_x$p.value,4),")"),
-      xlab = paste0("Theoretical ",xdist$name))
+      xlab = paste0("Theoretical ",x.dist$name))
 
     # Cox-Snell Residual
     df <- df[order(df$t),]
-    df$coxsnell <- tdist$cum.hazard(df$t, params.t) * exp(df$x * params.ph)
+    df$coxsnell <- t.dist$cum.hazard(df$t, params.t) * exp(df$x * params.ph)
     # H_nelson <- nelson_aalen(df)
     # df$nelson <- H_nelson$Hj[H_nelson$tj == df$t]
     theoretical.q <- call("qexp", p = pp, rate = 1)
@@ -98,42 +97,41 @@ timeroc_gof <- function(obj){
     return(list(ks_x = ks_x, ks_t = ks_t))
   }
   else{
-    cdist <- get.copula[[copula]]
     # layout(matrix(c(1, 0, 1,  3, 2, 3, 2, 0), nrow = 2, ncol = 4))
     layout(matrix(c(1, 3, 1,3,2,  4,2,4), nrow = 2, ncol = 4))
 
     # QQ plot X
     pp <- ppoints(nrow(df))
 
-    theoretical.q <- as.call(c(list(xdist$density[[4]], p = pp), as.list(params.x)))
+    theoretical.q <- as.call(c(list(x.dist$density[[4]], p = pp), as.list(params.x)))
     theo.q <- eval(theoretical.q)
 
     ks_x <- ks.test(df$x,theo.q)
     DescTools::PlotQQ(df$x, function(p){
-      qq <- as.call(c(list(xdist$density[[4]],p=p),params.x))
+      qq <- as.call(c(list(x.dist$density[[4]],p=p),params.x))
       eval(qq)},
       main = paste0("Biomarker (K-S : p = ",round(ks_x$p.value,4),")"),
-      xlab = paste0("Theoretical ",xdist$name))
+      xlab = paste0("Theoretical ",x.dist$name))
 
     # QQ plot T
     pp <- ppoints(nrow(df))
-    theoretical.q <- as.call(c(list(tdist$density[[4]], p = pp), as.list(params.t)))
+    theoretical.q <- as.call(c(list(t.dist$density[[4]], p = pp), as.list(params.t)))
     theo.q <- eval(theoretical.q)
     ks_t <- ks.test(df$t,theo.q)
     DescTools::PlotQQ(df$t, function(p){
-      qq <- as.call(c(list(tdist$density[[4]],p=p),params.t))
+      qq <- as.call(c(list(t.dist$density[[4]],p=p),params.t))
       eval(qq)},
       main = paste0("Time-to-event (K-S : p = ",round(ks_t$p.value,4),")"),
-      xlab = paste0("Theoretical ",tdist$name))
+      xlab = paste0("Theoretical ",t.dist$name))
 
     # QQ plot Copula (Using Rosenblatt transformations)
-    Ft <- as.call(c(list(tdist$density[[3]],df$t),params.t))
-    Fx <- as.call(c(list(xdist$density[[3]],df$x),params.x))
+    Ft <- as.call(c(list(t.dist$density[[3]],df$t),params.t))
+    Fx <- as.call(c(list(x.dist$density[[3]],df$x),params.x))
     u <- eval(Fx); v <- eval(Ft)
     # Ft <- stats::ecdf(df$t)
     # Fx <- stats::ecdf(df$x)
     # u <- Fx(df$x); v <- Ft(df$t)
-    cond_uv <- VineCopula::BiCopHfunc(u,v, family = cdist$family, par = params.copula)
+    cond_uv <- VineCopula::BiCopHfunc(u,v, family = copula$family, par = params.copula)
     # kendall_test <- VineCopula::BiCopGofTest(u,v, family = cdist$family,
     #                                        par = params.copula,
     #                                        method = "kendall", B = 200)

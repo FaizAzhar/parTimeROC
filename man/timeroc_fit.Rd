@@ -14,7 +14,7 @@ timeroc_fit(
   init.param.copula = NULL,
   init.param.ph = NULL,
   ci = 0.95,
-  type = "mle"
+  method = "mle"
 )
 }
 \arguments{
@@ -36,10 +36,10 @@ timeroc_fit(
 
 \item{ci}{An integer 0 to 1 for confidence level.\cr}
 
-\item{type}{A string specifying type of estimation. (Default = 'mle') \cr}
+\item{method}{A string specifying method of estimation. (Default = 'mle') \cr}
 }
 \value{
-return a list of MLE estimator.
+return a list of frequentist or bayesian estimator.
 }
 \description{
 Fit TimeROC using Maximum Likelihood Estimator.

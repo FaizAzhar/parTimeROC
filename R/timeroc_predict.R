@@ -56,7 +56,7 @@ timeroc_predict <- function(obj, B = 1, newx, cutoff = 100, t, type = 'standard'
 
   ## preprocessing of arguments
   se.x <- se.t <- se.c <- x.val <- name.dist.x <- name.dist.t <- dat <- NULL
-  x.dist <- t.dist <- iscopula <- NULL
+  se.ph <- xval <- x.dist <- t.dist <- iscopula <- NULL
 
   if(inherits(obj, 'fitTROC')){
     args <- preproc(c(as.list(environment()), call = match.call()),
@@ -73,14 +73,14 @@ timeroc_predict <- function(obj, B = 1, newx, cutoff = 100, t, type = 'standard'
                              ci = ci, t.dist = t.dist, params.t = params.t,
                              params.copula = params.copula, iscopula = iscopula, t = t,
                              copula = copula, se.x = se.x, se.t = se.t, se.c = se.c,
-                             B = B, params.ph = params.ph, xval = xval)
+                             B = B, params.ph = params.ph, xval = xval, se.ph = se.ph)
   } else if(type == 'standard'){
     res <- analysis.standard(iscopula = iscopula, params.x = params.x,
                              params.t = params.t, params.copula = params.copula,
                              params.ph = params.ph, se.x = se.x, se.t = se.t,
                              se.c = se.c, B = B, xval = xval,
                              t = t, x.dist = x.dist, t.dist = t.dist,
-                             copula = copula, ci = ci)
+                             copula = copula, ci = ci, se.ph = se.ph)
   }
 
   class(res) <- "predictTROC"
@@ -90,8 +90,8 @@ timeroc_predict <- function(obj, B = 1, newx, cutoff = 100, t, type = 'standard'
 # --------------------------------------
 # function to run standard analysis.
 analysis.standard <- function(iscopula, params.x, params.t, params.copula = NULL,
-                              params.ph = NULL, se.x, se.t, se.c = NULL, B, xval, t,
-                              x.dist, t.dist, copula = NULL, ci){
+                              params.ph = NULL, se.x, se.t, se.c = NULL, se.ph = NULL,
+                              B, xval, t, x.dist, t.dist, copula = NULL, ci){
 
   if(iscopula == 1){
     pargs <- list(par.x = params.x, par.t = params.t,
@@ -104,7 +104,7 @@ analysis.standard <- function(iscopula, params.x, params.t, params.copula = NULL
     for(i in 1:length(ret)){ret[[i]] <- cbind(ret[[i]], assoc = params.copula)}
   } else if (iscopula == 0){
     pargs <- list(par.x = params.x, par.t = params.t, par.ph = params.ph,
-                  se.x = se.x, se.t = se.t)
+                  se.x = se.x, se.t = se.t, se.ph = se.ph)
     sim.par <- do.call(pars.boot,list(boot.val=B, pargs=pargs, iscopula=iscopula))
     ret <- do.call(timeroc,list(pars=sim.par, cutoff=xval, t=t, model=iscopula,
                                 x.dist = x.dist, t.dist = t.dist,
@@ -118,7 +118,8 @@ analysis.standard <- function(iscopula, params.x, params.t, params.copula = NULL
 # function to run landmark analysis.
 analysis.landmark <- function(dat, method, x.dist, params.x, ci, t.dist, params.t,
                               params.copula = NULL, iscopula, t, copula = NULL,
-                              se.x, se.t, se.c = NULL, B, params.ph = NULL, xval){
+                              se.x, se.t, se.c = NULL, B, params.ph = NULL,
+                              se.ph = NULL, xval){
   ## ToDo: Future work for landmark analysis
   res <- c()
   fitted.x <- fit.x(x = dat$x, method = method, x.dist = x.dist,
@@ -160,7 +161,7 @@ analysis.landmark <- function(dat, method, x.dist, params.x, ci, t.dist, params.
       tname <- !(names(fitted.t$par) %in% c("beta"))
       pargs <- list(par.x = fitted.x$par, par.t = fitted.t$par[tname],
                     par.ph = fitted.t$par["beta"],
-                    se.x = se.x, se.t = se.t)
+                    se.x = fitted.x$se, se.t = fitted.t$se[tname], se.ph = fitted.t$se['beta'])
       sim.par <- do.call(pars.boot,list(boot.val=B, pargs=pargs, iscopula=iscopula))
       ret <- do.call(timeroc,list(pars=sim.par, cutoff=xval, t=ttime, model=iscopula,
                                   x.dist = x.dist, t.dist = t.dist,
@@ -192,13 +193,27 @@ pars.boot <- function(boot.val, pargs, iscopula){
     }
     return(sim)
   } else{
-      sim$par.x <- rmvnorm(boot.val, pargs$par.x, diag(pargs$se.x))
+      # sim$par.x <- rmvnorm(boot.val, pargs$par.x, diag(pargs$se.x))
+      par.x <- matrix(NA, nrow = boot.val, ncol = length(pargs$se.x),
+                      dimnames = list(NULL,names(pargs$se.x)))
+      for(i in 1:ncol(par.x)){
+        par.x[,i] <- rnorm(boot.val, mean = pargs$par.x[[i]], sd = pargs$se.x[[i]])
+      }
+      sim$par.x <- par.x
+
+      par.t <- matrix(NA, nrow = boot.val, ncol = length(pargs$se.t),
+                        dimnames = list(NULL,names(pargs$se.t)))
+      for (i in 1:ncol(par.t)){
+          par.t[,i] <- rnorm(boot.val, mean = pargs$par.t[[i]], sd = pargs$se.t[[i]])
+      }
+      sim$par.t <- par.t
       if(iscopula==0){
-        sim$par.t <- rmvnorm(boot.val, c(pargs$par.t,pargs$par.ph), diag(pargs$se.t))
-        sim$par.b <- sim$par.t[,'beta']
-        sim$par.t <- sim$par.t[,-'beta']
+        # sim$par.t <- rmvnorm(boot.val, c(pargs$par.t,pargs$par.ph), diag(pargs$se.t))
+        # sim$par.b <- sim$par.t[,'beta']
+        # sim$par.t <- sim$par.t[,-'beta']
+        sim$par.b <- rnorm(boot.val, mean = pargs$par.ph, sd = pargs$se.ph)
       } else {
-        sim$par.t <- rmvnorm(boot.val, c(pargs$par.t), diag(pargs$se.t))
+        # sim$par.t <- rmvnorm(boot.val, c(pargs$par.t), diag(pargs$se.t))
         sim$par.c <- rnorm(boot.val, pargs$par.cop, pargs$se.c)
       }
       return(sim)

@@ -24,6 +24,11 @@ You can install the development version of parTimeROC from
 devtools::install_github("FaizAzhar/parTimeROC")
 ```
 
+Since this package also include the bayesian estimation procedure
+(rstan), please ensure to follow the correct installation setup such as
+demonstrated in this
+[article](https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started).
+
 ## Theoretical Framework
 
 A receiver operating characteristics (ROC) curve is a curve that
@@ -84,7 +89,7 @@ names(parTimeROC::get.distributions)
 #> [1] "exponential" "weibull"     "gaussian"    "normal"      "lognormal"  
 #> [6] "gompertz"    "skewnormal"
 names(parTimeROC::get.copula)
-#> [1] "gaussian"  "clayton90" "gumbel90"  "joe90"
+#> [1] "gaussian"  "clayton90" "gumbel90"  "gumbel"    "joe90"
 ```
 
 ### `rtimeroc`
@@ -118,7 +123,7 @@ Fig.1. Random data of biomarker and time-to-event
 
 ### `timeroc_fit`
 
-We also can fit datasets that have time-to-event, covariates and status
+We can also fit datasets that have time-to-event, covariates and status
 columns with the PH or copula model using the
 `parTimeROC::timeroc_fit()`.
 
@@ -130,6 +135,13 @@ Meanwhile, for copula method, the IFM technique is used due to its light
 computational requirement. Three fitting processes are conducted. One is
 to fit the marginal distribution for biomarker, another is to fit the
 marginal time-to-event. And lastly is to fit the copula function.
+
+User can choose to conduct the model fitting procedure based on the
+frequentist or bayesian approach by specifying the `method = 'mle'` or
+`method = 'bayes'` within the `parTimeROC::timeroc_fit()` function.
+
+By default, the frequentist approach is used to estimate the model’s
+parameters.
 
 ``` r
 library(parTimeROC)
@@ -230,18 +242,18 @@ misspecified
     #> 
     #> $ind_u
     #> $ind_u$statistic
-    #> [1] 2.028391
+    #> [1] 1.875196
     #> 
     #> $ind_u$p.value
-    #> [1] 0.04252035
+    #> [1] 0.06076572
     #> 
     #> 
     #> $ind_v
     #> $ind_v$statistic
-    #> [1] 2.691851
+    #> [1] 2.674574
     #> 
     #> $ind_v$p.value
-    #> [1] 0.007105664
+    #> [1] 0.007482435
 
 ``` r
 test <- timeroc_obj("normal-weibull-copula",copula="clayton90")
@@ -280,18 +292,18 @@ correct specification
     #> 
     #> $ind_u
     #> $ind_u$statistic
-    #> [1] 1.465733
+    #> [1] 1.385664
     #> 
     #> $ind_u$p.value
-    #> [1] 0.1427209
+    #> [1] 0.1658495
     #> 
     #> 
     #> $ind_v
     #> $ind_v$statistic
-    #> [1] 0.1520429
+    #> [1] 0.07947699
     #> 
     #> $ind_v$p.value
-    #> [1] 0.8791531
+    #> [1] 0.9366532
 
 ``` r
 library(parTimeROC)
@@ -328,10 +340,10 @@ misspecified
     #> 
     #> $ks_t
     #> 
-    #>  Asymptotic one-sample Kolmogorov-Smirnov test
+    #>  Asymptotic two-sample Kolmogorov-Smirnov test
     #> 
-    #> data:  df$coxsnell
-    #> D = 0.035368, p-value = 0.8472
+    #> data:  df$coxsnell and theo.q
+    #> D = 0.036667, p-value = 0.9877
     #> alternative hypothesis: two-sided
 
 ``` r
@@ -361,10 +373,10 @@ correct specification
     #> 
     #> $ks_t
     #> 
-    #>  Asymptotic one-sample Kolmogorov-Smirnov test
+    #>  Asymptotic two-sample Kolmogorov-Smirnov test
     #> 
-    #> data:  df$coxsnell
-    #> D = 0.029988, p-value = 0.9502
+    #> data:  df$coxsnell and theo.q
+    #> D = 0.03, p-value = 0.9993
     #> alternative hypothesis: two-sided
 
 ### `timeroc_predict`
@@ -373,6 +385,20 @@ Finally, after fitting process, we can predict the value of sensitivity
 and specificity of the covariates at specific time point using the
 `parTimeROC::timeroc_predict()` function. This will return a list of
 dataframe for each specified time.
+
+To generate the ROC curve, user can choose to conduct the prediction
+procedure using the `type = 'standard'` or `type = 'landmark'` approach.
+
+By default, the `type = 'standard'` analysis will be used to produce the
+ROC curve at different time point. After model fitting procedure, the
+estimated parameters will be extracted and used to compute the ROC at
+the specified time of interest.
+
+Meanwhile for the `type = 'landmark'` analysis, at each time point of
+interest, the status of each observation will be updated prior running
+the model fitting procedure. Hence, in landmark analysis, the fitting
+procedure will be conducted multiple times. At each time of interest,
+the updated estimators are then used to produce the ROC curve.
 
 ``` r
 library(parTimeROC)
@@ -400,7 +426,7 @@ Fig.6. ROC curve at 25th & 50th quantile points of time-to-event
 
 </div>
 
-We also can specify the number of bootstrap process that we want if
+We can also specify the number of bootstrap process that we want if
 confidence interval of the ROC curve need to be computed. The bootstrap
 procedure can be achieved by supplying `B = bootstrap value` into the
 `parTimeROC::timeroc_predict()` function.
@@ -457,10 +483,10 @@ jj <- timeroc_predict(cc, t = quantile(rr$t, probs = c(0.25,0.5,0.75)),
                       B = 500)
 
 print(timeroc_auc(jj))
-#>               time   est.auc   low.auc   upp.auc
-#> 1 1.67162499336611 0.8870603 0.8359451 0.9290326
-#> 2 3.82232388405918 0.8204010 0.7656753 0.8666275
-#> 3 7.39650943317648 0.7724798 0.7163410 0.8197035
+#>               time     assoc   est.auc   low.auc   upp.auc
+#> 1 1.67162499336611 -1.889754 0.8871412 0.8360745 0.9251444
+#> 2 3.82232388405918 -1.889754 0.8204138 0.7650090 0.8657244
+#> 3 7.39650943317648 -1.889754 0.7725274 0.7156493 0.8204064
 ```
 
 ## Funding
