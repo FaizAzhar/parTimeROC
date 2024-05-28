@@ -11,6 +11,7 @@
 #' @import rstantools
 #' @importFrom RcppParallel RcppParallelLibs
 #' @importFrom rstan sampling
+#' @importFrom moments skewness
 #'
 #' @references
 #' Stan Development Team (NA). RStan: the R interface to Stan. R package version 2.32.3. https://mc-stan.org

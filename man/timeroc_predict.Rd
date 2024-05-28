@@ -15,9 +15,11 @@ timeroc_predict(
   params.t,
   copula,
   method = "mle",
+  definition = "c/d",
   params.copula,
   params.ph,
-  ci = 0.95
+  ci = 0.95,
+  h = -1e-04
 )
 }
 \arguments{
@@ -41,11 +43,15 @@ timeroc_predict(
 
 \item{method}{A string specifying method of estimation. (Default = 'mle') \cr}
 
+\item{definition}{A string indicating ROC definition to use. (Default = 'c/d') \cr}
+
 \item{params.copula}{An integer specifying the copula's parameter.\cr}
 
 \item{params.ph}{An integer specifying the PH parameter.\cr}
 
 \item{ci}{An integer 0 to 1 for confidence level.\cr}
+
+\item{h}{An integer specifying small change of time (To compute density from S(t|x)) \cr}
 }
 \value{
 A list of ROC dataframe for each specified time-to-event.

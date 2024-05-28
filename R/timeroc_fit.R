@@ -69,7 +69,7 @@ timeroc_fit <- function(obj, x, t, event, init.param.x = NULL, init.param.t= NUL
 
   ##Fit Copula
   if (is.list(copula)){
-    res.c <- fit.copula(x, t, event, method, res.x, res.t, x.dist, t.dist, init.param.copula, copula, ci)
+    res.c <- fit.copula(x, t, res.x, event, method, res.t, x.dist, t.dist, init.param.copula, copula, ci)
 
     out <- list(name = obj$dist, name.copula = obj$copula$cop.abbr,
                 dat = data.frame(x=x,t=t,event=event), x = res.x, t = res.t,
@@ -85,7 +85,6 @@ timeroc_fit <- function(obj, x, t, event, init.param.x = NULL, init.param.t= NUL
 }
 
 fit.copula <- function(x, t, res.x, event, method, res.t, x.dist, t.dist, init.param.copula, copula, ci){
-
   Call3 <- match.call(expand.dots = TRUE)
   res.c <- list()
   xargs <- as.list(res.x$par)
