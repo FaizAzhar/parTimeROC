@@ -9,7 +9,9 @@
 #' @param newx A numeric/vector specifying biomarker of interest.\cr
 #' @param type A string indicate type of analysis to run. (Default = 'standard')\cr
 #' @param method A string specifying method of estimation. (Default = 'mle') \cr
+#' @param definition A string indicating ROC definition to use. (Default = 'c/d') \cr
 #' @param ci An integer 0 to 1 for confidence level.\cr
+#' @param h An integer specifying small change of time (To compute density from S(t|x)) \cr
 #' @param params.x A named vector for biomarker's parameter.\cr
 #' @param params.t A named vector for time-to-event's parameter.\cr
 #' @param copula A string indicating the type of copula to be used.\cr
@@ -51,8 +53,8 @@
 #' @returns A list of ROC dataframe for each specified time-to-event.
 #' @export
 timeroc_predict <- function(obj, B = 1, newx, cutoff = 100, t, type = 'standard',
-                         params.x, params.t, copula, method = 'mle',
-                         params.copula, params.ph, ci=0.95){
+                         params.x, params.t, copula, method = 'mle', definition = 'c/d',
+                         params.copula, params.ph, ci=0.95, h=-0.0001){
 
   ## preprocessing of arguments
   se.x <- se.t <- se.c <- x.val <- name.dist.x <- name.dist.t <- dat <- NULL
@@ -73,14 +75,15 @@ timeroc_predict <- function(obj, B = 1, newx, cutoff = 100, t, type = 'standard'
                              ci = ci, t.dist = t.dist, params.t = params.t,
                              params.copula = params.copula, iscopula = iscopula, t = t,
                              copula = copula, se.x = se.x, se.t = se.t, se.c = se.c,
-                             B = B, params.ph = params.ph, xval = xval, se.ph = se.ph)
+                             B = B, params.ph = params.ph, xval = xval, se.ph = se.ph,
+                             definition = definition, h=h)
   } else if(type == 'standard'){
     res <- analysis.standard(iscopula = iscopula, params.x = params.x,
                              params.t = params.t, params.copula = params.copula,
                              params.ph = params.ph, se.x = se.x, se.t = se.t,
-                             se.c = se.c, B = B, xval = xval,
+                             se.c = se.c, B = B, xval = xval,h=h,
                              t = t, x.dist = x.dist, t.dist = t.dist,
-                             copula = copula, ci = ci, se.ph = se.ph)
+                             copula = copula, ci = ci, se.ph = se.ph, definition = definition)
   }
 
   class(res) <- "predictTROC"
@@ -89,9 +92,9 @@ timeroc_predict <- function(obj, B = 1, newx, cutoff = 100, t, type = 'standard'
 
 # --------------------------------------
 # function to run standard analysis.
-analysis.standard <- function(iscopula, params.x, params.t, params.copula = NULL,
+analysis.standard <- function(iscopula, params.x, params.t, params.copula = NULL,h,
                               params.ph = NULL, se.x, se.t, se.c = NULL, se.ph = NULL,
-                              B, xval, t, x.dist, t.dist, copula = NULL, ci){
+                              B, xval, t, x.dist, t.dist, copula = NULL, ci, definition){
 
   if(iscopula == 1){
     pargs <- list(par.x = params.x, par.t = params.t,
@@ -100,7 +103,7 @@ analysis.standard <- function(iscopula, params.x, params.t, params.copula = NULL
     sim.par <- do.call(pars.boot,list(boot.val=B, pargs=pargs, iscopula=iscopula))
     ret <- do.call(timeroc,list(pars=sim.par, cutoff=xval, t=t, model=iscopula,
                                 x.dist = x.dist, t.dist = t.dist, copula = copula,
-                                ci = ci))
+                                ci = ci, definition = definition))
     for(i in 1:length(ret)){ret[[i]] <- cbind(ret[[i]], assoc = params.copula)}
   } else if (iscopula == 0){
     pargs <- list(par.x = params.x, par.t = params.t, par.ph = params.ph,
@@ -108,7 +111,7 @@ analysis.standard <- function(iscopula, params.x, params.t, params.copula = NULL
     sim.par <- do.call(pars.boot,list(boot.val=B, pargs=pargs, iscopula=iscopula))
     ret <- do.call(timeroc,list(pars=sim.par, cutoff=xval, t=t, model=iscopula,
                                 x.dist = x.dist, t.dist = t.dist,
-                                ci = ci))
+                                ci = ci, definition = definition,h=h))
     for(i in 1:length(ret)){ret[[i]] <- cbind(ret[[i]], assoc = params.ph)}
   }
   return(ret)
@@ -119,7 +122,7 @@ analysis.standard <- function(iscopula, params.x, params.t, params.copula = NULL
 analysis.landmark <- function(dat, method, x.dist, params.x, ci, t.dist, params.t,
                               params.copula = NULL, iscopula, t, copula = NULL,
                               se.x, se.t, se.c = NULL, B, params.ph = NULL,
-                              se.ph = NULL, xval){
+                              se.ph = NULL, xval, definition, h){
   ## ToDo: Future work for landmark analysis
   res <- c()
   fitted.x <- fit.x(x = dat$x, method = method, x.dist = x.dist,
@@ -147,7 +150,7 @@ analysis.landmark <- function(dat, method, x.dist, params.x, ci, t.dist, params.
       sim.par <- do.call(pars.boot,list(boot.val=B, pargs=pargs, iscopula=iscopula))
       ret <- do.call(timeroc,list(pars=sim.par, cutoff=xval, t=ttime, model=iscopula,
                                   x.dist = x.dist, t.dist = t.dist, copula = copula,
-                                  ci = ci))
+                                  ci = ci, definition = definition))
       ret[[1]] <- cbind(ret[[1]], assoc = fitted.copula$par)
       res <- c(res,ret)
     }
@@ -155,8 +158,8 @@ analysis.landmark <- function(dat, method, x.dist, params.x, ci, t.dist, params.
     for(ttime in t){
       subdat <- dat
       subdat[which(dat$t > ttime),3] <- 0
-      fitted.t <- fit.t(x = subdat$x, t = subdat$t, event = subdat$event,
-                        method = method, t.dist = t.dist, init.param.t = params.t,
+      fitted.t <- fit.t(x = subdat$x, t = subdat$t, res.x = fitted.x, event = subdat$event,
+                        method = method, x.dist = x.dist, t.dist = t.dist, init.param.t = params.t,
                         init.param.ph = params.ph, iscopula = iscopula, ci = ci)
       tname <- !(names(fitted.t$par) %in% c("beta"))
       pargs <- list(par.x = fitted.x$par, par.t = fitted.t$par[tname],
@@ -165,7 +168,7 @@ analysis.landmark <- function(dat, method, x.dist, params.x, ci, t.dist, params.
       sim.par <- do.call(pars.boot,list(boot.val=B, pargs=pargs, iscopula=iscopula))
       ret <- do.call(timeroc,list(pars=sim.par, cutoff=xval, t=ttime, model=iscopula,
                                   x.dist = x.dist, t.dist = t.dist,
-                                  ci = ci))
+                                  ci = ci, definition = definition, h=h))
       ret[[1]] <- cbind(ret[[1]], assoc = fitted.t$par["beta"])
       res <- c(res,ret)
     }
@@ -222,7 +225,7 @@ pars.boot <- function(boot.val, pargs, iscopula){
 
 # --------------------------------------
 # helper function to compute sensitivity and specificity
-timeroc <- function(model, pars, t, cutoff, x.dist, t.dist, copula=NULL, ci){
+timeroc <- function(model, pars, t, cutoff, x.dist, t.dist, copula=NULL, ci, definition, h){
   xfn <- x.dist$density
   tfn <- t.dist$density
   if(x.dist$name.abbr == "skewnormal") class(xfn) <- "snorm" # there is no sn::psn(..,lower.tail=F)
@@ -232,7 +235,7 @@ timeroc <- function(model, pars, t, cutoff, x.dist, t.dist, copula=NULL, ci){
                                 cfn = copula, pars = pars, ci = ci))
   } else {
     est <- do.call(roc.ph,list(x = cutoff, t = t, xfn = xfn, tfn = tfn,
-                               pars = pars, ci = ci))
+                               pars = pars, ci = ci, definition = definition, h=h))
   }
 
   return(est)
@@ -242,7 +245,7 @@ timeroc <- function(model, pars, t, cutoff, x.dist, t.dist, copula=NULL, ci){
 # Function that will be automatically called within timeroc to compute sensitivity and specificity of a PH mdoel.
 #' @importFrom cubature hcubature
 #' @importFrom stats quantile na.omit
-roc.ph <- function(x,t, xfn, tfn, pars, ci){
+roc.ph <- function(x,t, xfn, tfn, pars, ci, definition, h){
   pobs <- (1-ci)/2
   res <- list()
   res.x <- matrix(NA, nrow = length(x), ncol = 6,
@@ -263,31 +266,67 @@ roc.ph <- function(x,t, xfn, tfn, pars, ci){
     sx
   }
 
-  rr <- function(args){
+  Survt_h <- function(pars){
+    st <- do.call(tfn[[3]], c(list(t_val+h,lower.tail = F),pars))
+    if(inherits(tfn,"snorm")) st <- 1-st
+    st
+  }
+
+  # For C/D time-dependent ROC
+  # args[1] = x, args[2] = S_0(t), args[3] = beta
+  integrate.f <- function(args){
     jj <- function(cc) {
-      dx <- do.call(xfn[[2]], c(list(x = cc), args[4:length(args)]))
+      dx <- do.call(xfn[[2]], c(list(x = cc), args[5:length(args)]))
       return(args[2]^(exp(args[3] * cc)) * dx)
     }
     hcubature(jj, lowerLimit = args[1], upperLimit = Inf)$integral
   }
 
+  # For I/D time-dependent ROC
+  # args[4] = S_0(t+h)
+  integrate.f.id <- function(args){
+    jj <- function(cc) {
+      dx <- do.call(xfn[[2]], c(list(x = cc), args[5:length(args)]))
+      return((args[2]^(exp(args[3] * cc)) - (args[4])^(exp(args[3] * cc)))/(h) * dx)
+    }
+    hcubature(jj, lowerLimit = args[1], upperLimit = Inf)$integral
+  }
+
+  # # For C/D time-dependent ROC
+  # # args[4] = S_0(t+h)
+  # integrate.f.cd <- function(args){
+  #   jj <- function(cc) {
+  #     dx <- do.call(xfn[[2]], c(list(x = cc), args[5:length(args)]))
+  #     return((args[2]^(exp(args[3] * cc)) - (args[4])^(exp(args[3] * cc))) * dx)
+  #   }
+  #   hcubature(jj, lowerLimit = args[1], upperLimit = Inf)$integral
+  # }
   for(t_val in t){
+
     pt <- apply(pars$par.t,1,Survt)
+    pt_h <- apply(pars$par.t,1,Survt_h)
 
     for(ii in seq_along(x)){
       x_val <- x[ii]
       px <- apply(pars$par.x,1,Survx)
 
-      S.t <- apply(cbind(-Inf,pt,pars$par.b,pars$par.x),1,rr)
-      s.ct <- apply(cbind(x_val,pt,pars$par.b,pars$par.x),1,rr)
-
-      # sensitivity
-      sens <- (px-s.ct) / (1-S.t)
-      # sens[which(sens < 0)] <- 0
-      # sens[which(sens > 1)] <- 1
+      S.t <- apply(cbind(-Inf,pt,pars$par.b,pt_h,pars$par.x),1,integrate.f)
+      s.ct <- apply(cbind(x_val,pt,pars$par.b,pt_h,pars$par.x),1,integrate.f)
 
       # specificity
       spec <- 1 - (s.ct/S.t)
+
+      # sensitivity
+      if(definition == "c/d"){
+        # S.t.cd <- apply(cbind(x_val,pt,pars$par.b,pt_h,pars$par.x),1,integrate.f.cd)
+        # S.t <- apply(cbind(-Inf,pt,pars$par.b,pt_h,pars$par.x),1,integrate.f.cd)
+        sens <- (px-s.ct) / (1-S.t)
+        # sens <- S.t.cd / S.t
+      } else if(definition == "i/d"){
+        f.t <- apply(cbind(-Inf,pt,pars$par.b,pt_h,pars$par.x),1,integrate.f.id)
+        S.t.id <- apply(cbind(x_val,pt,pars$par.b,pt_h,pars$par.x),1,integrate.f.id)
+        sens <- S.t.id/f.t
+      }
 
       res.boot <- na.omit(cbind(sens, spec))
       est <- t(colMeans(res.boot))
@@ -303,18 +342,8 @@ roc.ph <- function(x,t, xfn, tfn, pars, ci){
 }
 
 # --------------------------------------
-
-#' roc.cop
-#'
-#' @description Function that will be automatically called within troc_curve & timeroc to compute sensitivity and specificity of a copula mdoel.
-#' @param x An integer vector specifying the biomarker value.\cr
-#' @param t An integer vector specifying the time to produce the ROC curve.\cr
-#' @param xfn A list of functions used to compute the biomarker distribution.\cr
-#' @param tfn A list of functions used to compute the time-to-event distribution.\cr
-#' @param cfn A list of functions used to compute the copula distribution.\cr
-#' @param pars A list of vector specifying the estimated X, T and PH/copula parameter.\cr
-#' @param ci An integer specifying the confidence interval of the ROC curve.\cr
-#' @keywords internal
+# roc.cop
+# Function that will be automatically called within timeroc to compute sensitivity and specificity of a copula mdoel.
 #' @importFrom stats quantile na.omit
 roc.cop <- function(x,t, xfn, tfn, cfn, pars, ci){
   pobs <- (1-ci)/2
@@ -333,7 +362,7 @@ roc.cop <- function(x,t, xfn, tfn, cfn, pars, ci){
     do.call(xfn[[3]], c(list(x_val),pars))
   }
 
-  rr <- function(args){
+  roc.formula <- function(args){
     F.uv <- cfn$density[[3]](u1 = args[1], u2 = args[2],
                              family = cfn$family, par = args[3])
     sens <- (args[2] - F.uv)/args[2]
@@ -348,7 +377,7 @@ roc.cop <- function(x,t, xfn, tfn, cfn, pars, ci){
       x_val <- x[ii]
       u <- apply(pars$par.x,1,Fx)
 
-      res.boot <- apply(cbind(u,v,pars$par.c),1,rr)
+      res.boot <- apply(cbind(u,v,pars$par.c),1,roc.formula)
       res.boot <- matrix(unlist(res.boot),ncol=2, nrow=length(pars$par.c),
                          byrow = TRUE)
       est <- na.omit(colMeans(res.boot))

@@ -156,12 +156,13 @@ get.distributions <- list(
     pars = c("xi","omega",'alpha'),
     init = function(t, ...){
       # Using method-of-moment by Azzalini (because have closed form)
-      m <- mean(t); v <- sd(t)
-      s <- mean((t-m)^3)/(mean((t-m)^2)^(3/2))
-      d <- (pi/2)*(abs(s)^(2/3))/(abs(s)^(2/3) + ((4-pi)/2)^(2/3))
-      alpha <- d/sqrt(1-d^2)
-      omega <- v/sqrt(1-(2*d^2)/pi)
-      xi <- m - omega*d*sqrt(2/pi)
+      s <- moments::skewness(t)
+      d <- s/sqrt(1+s^2)
+
+      omega <- sqrt(1-(2/pi)*d^2)
+      v <- omega^2
+      xi <- sqrt(2/pi) * (s/(sqrt(1+s^2)))
+      alpha <- ((4-pi)/2)*xi^3/(v^1.5)
       list(xi = xi, omega = omega, alpha = alpha)
     },
     density = c(sn::rsn, sn::dsn, sn::psn, sn::qsn),

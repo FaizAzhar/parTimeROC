@@ -64,7 +64,8 @@ timeroc_fit <- function(obj, x, t, event, init.param.x = NULL, init.param.t= NUL
   res.x <- fit.x(x, method, x.dist, init.param.x, ci)
 
   ## Fit t
-  res.t <- fit.t(x, t, event, method, t.dist, init.param.t, init.param.ph, is.list(copula), ci)
+  res.t <- fit.t(x, t, res.x, event, method, x.dist, t.dist,
+                 init.param.t, init.param.ph, is.list(copula), ci)
 
   ##Fit Copula
   if (is.list(copula)){
@@ -83,15 +84,15 @@ timeroc_fit <- function(obj, x, t, event, init.param.x = NULL, init.param.t= NUL
   return(out)
 }
 
-fit.copula <- function(x, t, event, method, res.x, res.t, x.dist, t.dist, init.param.copula, copula, ci){
+fit.copula <- function(x, t, res.x, event, method, res.t, x.dist, t.dist, init.param.copula, copula, ci){
 
   Call3 <- match.call(expand.dots = TRUE)
   res.c <- list()
   xargs <- as.list(res.x$par)
   targs <- as.list(res.t$par)
 
-  px <- as.call(c(list(x.dist$density[[3]], q = x), xargs))
-  pt <- as.call(c(list(t.dist$density[[3]], q = t), targs))
+  px <- as.call(c(list(x.dist$density[[3]], x), xargs))
+  pt <- as.call(c(list(t.dist$density[[3]], t), targs))
 
   u <- eval(px)
   v <- eval(pt)
@@ -123,7 +124,7 @@ fit.copula <- function(x, t, event, method, res.x, res.t, x.dist, t.dist, init.p
     Call3$upper <- copula$upper
     Call3$method <- "L-BFGS-B"
     res.c <- eval.parent(Call3)
-    if(res.c$convergence > 0L) stop("copula optimization failed. Consider method = `bayes`")
+    # if(res.c$convergence > 0L) stop("copula optimization failed. Consider method = `bayes`")
     res.c$cov <- .hess_to_cov(res.c$hessian)
     se <- sqrt(diag(res.c$cov))
     res.c$ubound <- res.c$par + qnorm(1 - (1 - ci)/2)*se
@@ -138,18 +139,28 @@ fit.copula <- function(x, t, event, method, res.x, res.t, x.dist, t.dist, init.p
   return(res.c)
 }
 
-fit.t <- function(x, t, event, method, t.dist, init.param.t, init.param.ph = NULL, iscopula, ci){
+fit.t <- function(x, t, res.x, event, method, x.dist, t.dist,
+                  init.param.t, init.param.ph = NULL, iscopula, ci){
 
   Call2 <- match.call(expand.dots = TRUE)
   res.t <- list()
+  # xargs <- as.list(res.x$par)
+  #
+  # dx <- as.call(c(list(x.dist$density[[2]], x), xargs))
+  #
+  # u <- eval(dx)
+  # u <- log(u)
+
+  # nx <- length(res.x$par)
 
   ## Fit t
   if (method == "mle"){
     Call2[[1L]] <- quote(stats::optim)
     if (!iscopula){
       ll.t <- function(parms, ...){
-        likeli <- event * (log(t.dist$hazard(t,parms)) +
-                             x * parms[length(parms)]) -
+        # dx <- as.call(c(list(x.dist$density[[2]], x), parms[1:nx]))
+        # u <- eval(dx)
+        likeli <- event * (log(t.dist$hazard(t,parms)) + x * parms[length(parms)]) -
           exp(x * parms[length(parms)]) * t.dist$cum.hazard(t, parms)
         -sum(likeli)
       }
