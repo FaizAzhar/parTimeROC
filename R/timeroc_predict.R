@@ -2,7 +2,7 @@
 #'
 #' @description Predict time-dependent ROC from fitted model.
 #'
-#' @param obj A 'fitTROC' object.\cr
+#' @param obj A 'fitTROC' or 'TimeROC' object.\cr
 #' @param B An integer specifying bootstrap iteration. If B > 1, will also return confidence interval.\cr
 #' @param cutoff A numeric specifying total cutoff point on ROC curve.\cr
 #' @param t A numeric/vector specifying time point of interest. (Default: Time-to-event at 50th quantile points)\cr
@@ -17,6 +17,7 @@
 #' @param copula A string indicating the type of copula to be used.\cr
 #' @param params.copula An integer specifying the copula's parameter.\cr
 #' @param params.ph An integer specifying the PH parameter.\cr
+#' @param seed A numeric to pass in set.seed.\cr
 #'
 #' @examples
 #' # PH model
@@ -50,10 +51,11 @@
 #' jj <- timeroc_predict(cc, t = quantile(rr$t,probs = seq(0,1,by=0.1)))
 #' print(Sys.time()-start.t)
 #'
-#' @returns A list of ROC dataframe for each specified time-to-event.
+#' @returns A list of ROC dataframe for each time-to-event.
 #' @export
-timeroc_predict <- function(obj, B = 1, newx, cutoff = 100, t, type = 'standard',
-                         params.x, params.t, copula, method = 'mle', definition = 'c/d',
+timeroc_predict <- function(obj, t, newx, cutoff = 100, B = 1, type = 'standard',
+                         params.x, params.t, copula,
+                         method = 'mle', definition = 'c/d', seed,
                          params.copula, params.ph, ci=0.95, h=-0.0001){
 
   ## preprocessing of arguments
@@ -248,9 +250,9 @@ timeroc <- function(model, pars, t, cutoff, x.dist, t.dist, copula=NULL, ci, def
 roc.ph <- function(x,t, xfn, tfn, pars, ci, definition, h){
   pobs <- (1-ci)/2
   res <- list()
-  res.x <- matrix(NA, nrow = length(x), ncol = 6,
+  res.x <- matrix(NA, nrow = length(x), ncol = 7,
                   dimnames = list(NULL, c('est.sens', 'est.spec', 'low.sens',
-                                          'low.spec', 'upp.sens', 'upp.spec')))
+                                          'low.spec', 'upp.sens', 'upp.spec','X')))
   res.boot <- matrix(NA, nrow = length(pars$par.b), ncol = 2)
   colnames(res.boot) <- c('sens','spec')
 
@@ -292,7 +294,7 @@ roc.ph <- function(x,t, xfn, tfn, pars, ci, definition, h){
     hcubature(jj, lowerLimit = args[1], upperLimit = Inf)$integral
   }
 
-  # # For C/D time-dependent ROC
+  # # For C/D time-dependent ROC (Pepe definition)
   # # args[4] = S_0(t+h)
   # integrate.f.cd <- function(args){
   #   jj <- function(cc) {
@@ -309,7 +311,6 @@ roc.ph <- function(x,t, xfn, tfn, pars, ci, definition, h){
     for(ii in seq_along(x)){
       x_val <- x[ii]
       px <- apply(pars$par.x,1,Survx)
-
       S.t <- apply(cbind(-Inf,pt,pars$par.b,pt_h,pars$par.x),1,integrate.f)
       s.ct <- apply(cbind(x_val,pt,pars$par.b,pt_h,pars$par.x),1,integrate.f)
 
@@ -332,8 +333,9 @@ roc.ph <- function(x,t, xfn, tfn, pars, ci, definition, h){
       est <- t(colMeans(res.boot))
       low <- t(apply(res.boot, 2, quantile, probs = pobs))
       upp <- t(apply(res.boot, 2, quantile, probs = 1-pobs))
-      res.x[ii,] <- cbind(est, low, upp)
+      res.x[ii,] <- cbind(est, low, upp, x_val)
     }
+
     res[[as.character(t_val)]] <- res.x
 
   }
@@ -348,9 +350,9 @@ roc.ph <- function(x,t, xfn, tfn, pars, ci, definition, h){
 roc.cop <- function(x,t, xfn, tfn, cfn, pars, ci){
   pobs <- (1-ci)/2
   res <- list()
-  res.x <- matrix(NA, nrow = length(x), ncol = 6,
+  res.x <- matrix(NA, nrow = length(x), ncol = 7,
                   dimnames = list(NULL, c('est.sens', 'est.spec', 'low.sens',
-                                          'low.spec', 'upp.sens', 'upp.spec')))
+                                          'low.spec', 'upp.sens', 'upp.spec','X')))
   res.boot <- matrix(NA, nrow = length(pars$par.b), ncol = 2)
   colnames(res.boot) <- c('sens','spec')
 
@@ -380,11 +382,13 @@ roc.cop <- function(x,t, xfn, tfn, cfn, pars, ci){
       res.boot <- apply(cbind(u,v,pars$par.c),1,roc.formula)
       res.boot <- matrix(unlist(res.boot),ncol=2, nrow=length(pars$par.c),
                          byrow = TRUE)
-      est <- na.omit(colMeans(res.boot))
-      low <- apply(res.boot, 2, quantile, probs = pobs, na.rm = T)
-      upp <- apply(res.boot, 2, quantile, probs = 1-pobs, na.rm = T)
-      res.x[ii,] <- cbind(est, low, upp)
+      est <- t(na.omit(colMeans(res.boot)))
+      low <- t(apply(res.boot, 2, quantile, probs = pobs, na.rm = T))
+      upp <- t(apply(res.boot, 2, quantile, probs = 1-pobs, na.rm = T))
+
+      res.x[ii,] <- cbind(est, low, upp, x_val)
     }
+
     res[[as.character(t_val)]] <- res.x
 
   }

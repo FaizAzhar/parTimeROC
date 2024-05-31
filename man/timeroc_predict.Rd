@@ -6,16 +6,17 @@
 \usage{
 timeroc_predict(
   obj,
-  B = 1,
+  t,
   newx,
   cutoff = 100,
-  t,
+  B = 1,
   type = "standard",
   params.x,
   params.t,
   copula,
   method = "mle",
   definition = "c/d",
+  seed,
   params.copula,
   params.ph,
   ci = 0.95,
@@ -23,15 +24,15 @@ timeroc_predict(
 )
 }
 \arguments{
-\item{obj}{A 'fitTROC' object.\cr}
+\item{obj}{A 'fitTROC' or 'TimeROC' object.\cr}
 
-\item{B}{An integer specifying bootstrap iteration. If B > 1, will also return confidence interval.\cr}
+\item{t}{A numeric/vector specifying time point of interest. (Default: Time-to-event at 50th quantile points)\cr}
 
 \item{newx}{A numeric/vector specifying biomarker of interest.\cr}
 
 \item{cutoff}{A numeric specifying total cutoff point on ROC curve.\cr}
 
-\item{t}{A numeric/vector specifying time point of interest. (Default: Time-to-event at 50th quantile points)\cr}
+\item{B}{An integer specifying bootstrap iteration. If B > 1, will also return confidence interval.\cr}
 
 \item{type}{A string indicate type of analysis to run. (Default = 'standard')\cr}
 
@@ -45,6 +46,8 @@ timeroc_predict(
 
 \item{definition}{A string indicating ROC definition to use. (Default = 'c/d') \cr}
 
+\item{seed}{A numeric to pass in set.seed.\cr}
+
 \item{params.copula}{An integer specifying the copula's parameter.\cr}
 
 \item{params.ph}{An integer specifying the PH parameter.\cr}
@@ -54,7 +57,7 @@ timeroc_predict(
 \item{h}{An integer specifying small change of time (To compute density from S(t|x)) \cr}
 }
 \value{
-A list of ROC dataframe for each specified time-to-event.
+A list of ROC dataframe for each time-to-event.
 }
 \description{
 Predict time-dependent ROC from fitted model.

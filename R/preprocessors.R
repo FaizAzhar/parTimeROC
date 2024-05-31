@@ -46,6 +46,7 @@ TimeROC_predict_process <- function(args){
   if (is.symbol(args$params.t)) args$params.t <- NA
   if (is.symbol(args$params.copula)) args$params.copula <- NA
   if (is.symbol(args$params.ph)) args$params.ph <- NA
+  if (is.symbol(args$seed)) args$seed <- NA
 
   # store info from TimeROC object into environment
   if(!is.list(args$obj$copula)) {
@@ -60,19 +61,22 @@ TimeROC_predict_process <- function(args){
   if (!all(is.na(args$obj$params.t)))args$params.t <- args$obj$params.t
   if (!is.na(args$obj$params.copula))args$params.copula <- args$obj$params.copula
   if (!is.na(args$obj$params.ph))args$params.ph <- args$obj$params.ph
+  if (!is.na(args$seed))args$seed <- args$seed
 
   args$name.dist.x <- args$obj$x.dist$name.abbr
   args$name.dist.t <- args$obj$t.dist$name.abbr
   args$x.dist <- args$obj$x.dist
   args$t.dist <- args$obj$t.dist
+  args$cum.haz <- args$obj$t.dist$cum.hazard
 
+  if(!is.na(args$seed)) {set.seed(args$seed)}
   rr <- rtimeroc(args$obj, n = 500, censor.rate = 0,
                    params.x = args$params.x,
                    params.t = args$params.t,
                    params.copula = args$params.copula,
                    params.ph = args$params.ph)
 
-  args$x.val <- if(is.symbol(args$newx)) {
+  args$xval <- if(is.symbol(args$newx)) {
     seq(min(rr[,1]),max(rr[,1]),length.out = args$cutoff)
   } else{args$newx}
 
@@ -112,6 +116,7 @@ extract_from_fitTROC <- function(args){
                    copula = cname)
 
   # store info from fitTROC object into environment
+  args$cum.haz <- out$t.dist$cum.hazard
   args$params.x <- out$params.x
   args$params.t <- out$params.t
   args$name.copula <- ifelse(is.null(args$obj$name.copula),NA,out$copula$cop.abbr)

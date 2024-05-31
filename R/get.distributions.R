@@ -195,7 +195,8 @@ get.copula <- list(
       VineCopula::BiCopTau2Par(family = 1, tau)
       },
     density = cbind(VineCopula::BiCopSim, VineCopula::BiCopPDF,
-                    VineCopula::BiCopCDF, VineCopula::BiCopHfunc1),
+                    VineCopula::BiCopCDF, VineCopula::BiCopHfunc1,
+                    VineCopula::BiCopHfunc2),
     lower = -0.9999999,
     upper = 0.9999999
   ),
@@ -209,7 +210,8 @@ get.copula <- list(
       VineCopula::BiCopTau2Par(family = 23, tau)
       },
     density = cbind(VineCopula::BiCopSim, VineCopula::BiCopPDF,
-                    VineCopula::BiCopCDF, VineCopula::BiCopHfunc1),
+                    VineCopula::BiCopCDF, VineCopula::BiCopHfunc1,
+                    VineCopula::BiCopHfunc2),
     lower = -27.99,
     upper = -0.01
   ),
@@ -223,7 +225,8 @@ get.copula <- list(
       VineCopula::BiCopTau2Par(family = 24, tau)
       },
     density = cbind(VineCopula::BiCopSim, VineCopula::BiCopPDF,
-                    VineCopula::BiCopCDF, VineCopula::BiCopHfunc1),
+                    VineCopula::BiCopCDF, VineCopula::BiCopHfunc1,
+                    VineCopula::BiCopHfunc2),
     lower = -16.99,
     upper = -1.01
   ),
@@ -237,7 +240,8 @@ get.copula <- list(
       VineCopula::BiCopTau2Par(family = 4, tau)
     },
     density = cbind(VineCopula::BiCopSim, VineCopula::BiCopPDF,
-                    VineCopula::BiCopCDF, VineCopula::BiCopHfunc1),
+                    VineCopula::BiCopCDF, VineCopula::BiCopHfunc1,
+                    VineCopula::BiCopHfunc2),
     lower = 16.99,
     upper = 1.01
   ),
@@ -251,7 +255,8 @@ get.copula <- list(
       VineCopula::BiCopTau2Par(family = 26, tau)
       },
     density = cbind(VineCopula::BiCopSim, VineCopula::BiCopPDF,
-                    VineCopula::BiCopCDF, VineCopula::BiCopHfunc1),
+                    VineCopula::BiCopCDF, VineCopula::BiCopHfunc1,
+                    VineCopula::BiCopHfunc2),
     lower = -29.99,
     upper = -1.01
   )
