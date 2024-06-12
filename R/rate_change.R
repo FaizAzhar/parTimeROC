@@ -148,6 +148,13 @@ rchange_x <- function(x.dist, cum.haz, params.x, params.t, params.ph,
       dS <- (S_xt - S_xt_h)/0.0001
       dTP_dx <- -dF/Ft
       dFN_dx <- -dS/St
+
+      vec_len <- sqrt(sum(dTP_dx^2 + dFN_dx^2))
+
+      # return 0.2-unit vector
+      dTP_dx <- dTP_dx/(vec_len * 5)
+      dFN_dx <- dFN_dx/(vec_len * 5)
+
       store_room <- rbind(store_room,c(dTP_dx, dFN_dx))
       }
     colnames(store_room) <- c(paste0("dTP_",t), paste0("dFN_",t))
@@ -165,6 +172,12 @@ rchange_x <- function(x.dist, cum.haz, params.x, params.t, params.ph,
 
         dTP_dx <- -(C1 * fx)/Ft
         dFN_dx <- -(fx - C1*fx)/St
+
+        vec_len <- sqrt(sum(dTP_dx^2 + dFN_dx^2))
+
+        # return 0.2-unit vector
+        dTP_dx <- dTP_dx/(vec_len * 5)
+        dFN_dx <- dFN_dx/(vec_len * 5)
         store_room <- rbind(store_room,c(dTP_dx, dFN_dx))
       }
       colnames(store_room) <- c(paste0("dTP_",t), paste0("dFN_",t))
@@ -197,6 +210,13 @@ rchange_t <- function(x.dist, cum.haz, params.x, params.t, params.ph,
 
         dTP_dt <- (F_xt * ft)/(Ft^2) - integ_1/Ft
         dFN_dt <- (S_xt * ft)/(St^2) - integ_2/St
+
+        vec_len <- sqrt(sum(dTP_dt^2 + dFN_dt^2))
+
+        # return 0.2-unit vector
+        dTP_dt <- dTP_dt/(vec_len * 5)
+        dFN_dt <- dFN_dt/(vec_len * 5)
+
         store_room <- rbind(store_room,c(dTP_dt, dFN_dt))
       }
       colnames(store_room) <- c(paste0("dTP_",t), paste0("dFN_",t))
@@ -215,6 +235,13 @@ rchange_t <- function(x.dist, cum.haz, params.x, params.t, params.ph,
         C <- copula$density[[3]](Fx, Ft, family = copula$family, par = params.copula)
         dTP_dt <- -(Ft * C2 * ft - C * ft)/(Ft^2)
         dFN_dt <- (St * C2 * ft - (Fx - C) * ft)/(St^2)
+
+        vec_len <- sqrt(sum(dTP_dt^2 + dFN_dt^2))
+
+        # return 0.2-unit vector
+        dTP_dt <- dTP_dt/(vec_len * 5)
+        dFN_dt <- dFN_dt/(vec_len * 5)
+
         store_room <- rbind(store_room,c(dTP_dt, dFN_dt))
       }
       colnames(store_room) <- c(paste0("dTP_",t), paste0("dFN_",t))
