@@ -68,6 +68,8 @@ timeroc_predict <- function(obj, t, newx, cutoff = 100, B = 1, type = 'standard'
   }else if(inherits(obj, 'TimeROC')){
     args <- preproc(c(as.list(environment()), call = match.call()),
                     TimeROC_predict_process)
+  }else{
+    stop("Please supply a fitTROC or timeROC object")
   }
 
   list2env(args, environment())

@@ -1,4 +1,5 @@
 set_baseline <- function(baseline){
+  if(!is.character(baseline)) stop("Incorrect baseline")
   baseline <- switch(baseline,
                      "exponential" = 1,
                      "weibull" = 2,

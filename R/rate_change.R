@@ -53,6 +53,8 @@ rate_change <- function(obj, t, n=3, type = 'standard',
   }else if(inherits(obj, 'TimeROC')){
     args <- preproc(c(as.list(environment()), call = match.call()),
                     TimeROC_predict_process)
+  }else{
+    stop("Please supply a fitTROC or TimeROC object")
   }
 
   list2env(args, environment())
