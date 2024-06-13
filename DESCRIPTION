@@ -2,9 +2,9 @@ Package: parTimeROC
 Title: Parametric Time-Dependent ROC
 Version: 0.1.0
 Authors@R: 
-    person("Faiz", "Azhar", , "ahmad97@graduate.utm.my", role = c("aut", "cre"),
+    person("Faiz", "Azhar", , "faiz.azhar241@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0009-0003-8017-2565"))
-Maintainer: Faiz Azhar <ahmad97@graduate.utm.my>
+Maintainer: Faiz Azhar <faiz.azhar241@gmail.com>
 Description: The goal of parTimeROC is to store methods and procedures needed to run the time-dependent ROC analysis parametrically. This package adopts two different theoretical framework to produce the ROC curve which are from the proportional hazard model and copula function. Currently, this package only able to run analysis for single covariate/biomarker with survival time. The future direction for this work is to be able to include analysis for multiple biomarkers with longitudinal measurements.
 License: MIT + file LICENSE
 Encoding: UTF-8

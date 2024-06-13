@@ -55,7 +55,7 @@ distribution, two metrics can be computed which is the time-dependent
 sensitivity and specificity. Plotting these two informations will
 generate the desired time-dependent ROC curve.
 
-## Usage
+## Example
 
 Explanations below are showing the functions that can be found within
 `parTimeROC` package and its implementation.
@@ -483,130 +483,8 @@ jj <- timeroc_predict(cc, t = quantile(rr$t, probs = c(0.25,0.5,0.75)),
                       B = 500)
 
 print(timeroc_auc(jj))
-#>               time     assoc   est.auc   low.auc   upp.auc
-#> 1 1.67162499336611 -1.889754 0.8871412 0.8360745 0.9251444
-#> 2 3.82232388405918 -1.889754 0.8204138 0.7650090 0.8657244
-#> 3 7.39650943317648 -1.889754 0.7725274 0.7156493 0.8204064
+#>       time     assoc   est.auc   low.auc   upp.auc
+#> 1 1.671625 -1.889754 0.8871412 0.8360745 0.9251444
+#> 2 3.822324 -1.889754 0.8204138 0.7650090 0.8657244
+#> 3 7.396509 -1.889754 0.7725274 0.7156493 0.8204064
 ```
-
-## Funding
-
-Universiti Teknologi Malaysia (UTM), UTM Fundamental Research (UTMFR)
-Vote No: Q.J130000.3854.22H03.
-
-## References
-
-1.  R. Etzioni, M. Pepe, G. Longton, C. Hu, G. Goodman, Incorporating
-    the Time Dimension in Receiver Operating Characteristic Curves: A
-    Case Study of Prostate Cancer, *Medical Decision Making*,
-    **19(3)**:242–51 (1999)
-
-2.  P.J. Heagerty, T. Lumley, M.S. Pepe, Time-Dependent ROC Curves for
-    Censored Survival Data and a Diagnostic Marker, *Biometrics*,
-    **56(2)**:337–44 (2000)
-
-3.  I. Unal, Defining an Optimal Cut-Point Value in ROC Analysis: An
-    Alternative Approach, *Computational and Mathematical Methods in
-    Medicine*, 1–14 (2017)
-
-4.  P. Martínez-Camblor, J.C. Pardo-Fernández, Smooth time-dependent
-    receiver operating characteristic curve estimators, *Statistical
-    Methods in Medical Research*, **27(3)**:651–74 (2018)
-
-5.  K.M. Beyene, A. El Ghouch, Smoothed time‐dependent receiver
-    operating characteristic curve for right censored survival data,
-    *Statistics in Medicine*, **39(24)**:3373–96 (2020)
-
-6.  S. Díaz-Coto, P. Martínez-Camblor, S. Pérez-Fernández,
-    smoothROCtime: an R package for time-dependent ROC curve estimation,
-    *Computational Statistics*, **35(3)**:1231–51 (2020)
-
-7.  Y. Zheng, P.J. Heagerty, Semiparametric estimation of time-dependent
-    ROC curves for longitudinal marker data, *Biostatistics*,
-    **5(4)**:615–32 (2004)
-
-8.  R. Xu, J. O’Quigley, A 𝑅2 type measure of dependence for
-    proportional hazards models, *Journal of Nonparametric Statistics*,
-    **12(1)**:83–107 (1999)
-
-9.  D. Rizopoulos. Joint models for longitudinal and time-to-event data:
-    With applications in R, *CRC Press* (2012)
-
-10. R. Kolamunnage-Dona, A.N. Kamarudin, Adjustment for the measurement
-    error in evaluating biomarker performances at baseline for future
-    survival outcomes: Time-dependent receiver operating characteristic
-    curve within a joint modelling framework, *Research Methods in
-    Medicine & Health Sciences*, **2(2)**:51–60 (2021)
-
-11. A.N. Kamarudin, T. Cox, R. Kolamunnage-Dona, Time-dependent ROC
-    curve analysis in medical research: current methods and
-    applications, *BMC Medical Research Methodology*, **17(1)**:53
-    (2017)
-
-12. M.S. Pepe, Y. Zheng, Y. Jin, Y. Huang, C.R. Parikh, W.C. Levy,
-    Evaluating the ROC performance of markers for future events,
-    *Lifetime Data Analysis*, **14(1)**:86–113 (2008)
-
-13. A. Azzalini, A class of distributions which includes the normal
-    ones, *Scandinavian Journal of Statistics*, 199–208 (1985)
-
-14. J. Kalbfleisch, R. Prentice, The Statistical Analysis of Failure
-    Time Data, *John Wiley and Sons* (1980)
-
-15. G. Brostrom, Event History Analysis with R, *Chapman & Hall/CRC*,
-    85–112 (2012)
-
-16. S.K. Khosa, Parametric Proportional Hazard Models with Applications
-    in Survival Analysis (2019)
-
-17. J.E. Angus. The Probability Integral Transform and Related Results,
-    *SIAM Review*, **36(4)**:652–4 (1994)
-
-18. P.L. Ramos, D.C.F. Guzman, A.L. Mota, F.A. Rodrigues, F. Louzada,
-    Sampling with censored data: a practical guide (2020)
-
-19. R. Kelter, Bayesian identification of structural coefficients in
-    causal models and the causal false-positive risk of confounders and
-    colliders in linear Markovian models, *BMC Medical Research
-    Methodology*, **22(1)**:58 (2022)
-
-20. B. Narasimhan, M. Koller, S.G. Johnson, T. Hahn, A. Bouvier, K.
-    Kiêu, et al., cubature: Adaptive Multivariate Integration over
-    Hypercubes, available from: <https://bnaras.github.io/cubature/>
-    \[cited 2023 Dec 4\]
-
-21. C.W. Clenshaw, A.R. Curtis, A method for numerical integration on an
-    automatic computer, *Numerische Mathematik (Heidelb)*,
-    **2(1)**:197–205 (1960)
-
-22. S. Díaz-Coto, N.O. Corral-Blanco, P. Martínez-Camblor, Two-stage
-    receiver operating-characteristic curve estimator for cohort
-    studies, *International Journal of Biostatistics*, **17(1)**:117–37
-    (2021)
-
-23. W.N. Street, O.L. Mangasarian, W.H. Wolberg, An Inductive Learning
-    Approach to Prognostic Prediction, in Machine Learning Proceedings
-    1995, *Elsevier*; 522–30 (1995)
-
-24. P. Bühlmann, T. Hothorn, Boosting Algorithms: Regularization,
-    Prediction and Model Fitting, *Statistical Science*, **22(4)**
-    (2007)
-
-25. Z. Zhang, J. Reinikainen, K.A. Adeleke, M.E. Pieterse, C.G.M
-    GroothuisOudshoorn, Time-varying covariates and coefficients in Cox
-    regression models, *Annals of Translational Medicine*,
-    **6(7)**:121–121 (2018)
-
-26. Z. Zhang, C. Charalambous, P. Foster, A Gaussian copula joint model
-    for longitudinal and time-to-event data with random effects,
-    *Computational Statistics & Data Analysis* (2023)
-
-27. G. Escarela, A.R. Vásquez, G. González-Farías, J.U. Márquez-Urbina,
-    Copula modeling for the estimation of measures of marker
-    classification and predictiveness performance with survival
-    outcomes, *Statistical Methods in Medical Research* (2023)
-
-28. M. Ganjali, T. Baghfalaki, A Copula Approach to Joint Modeling of
-    Longitudinal Measurements and Survival Times Using Monte Carlo
-    Expectation-Maximization with Application to AIDS Studies, *Journal
-    Biopharmaceutical Statistics*, **25(5)**:1077–99 (2015)
