@@ -13,6 +13,10 @@ library(stats)
 #'
 #' Storing list of distributions for Biomarker, X and Time-to-event, T.
 #' @returns A list of distributions.
+#' @examples
+#' get.distributions
+#' #> "exponential" "weibull"     "gaussian"    "normal"      "lognormal"
+#' #> "gompertz"    "skewnormal"
 #' @export
 get.distributions <- list(
   'exponential' = list(
@@ -184,6 +188,9 @@ get.distributions <- list(
 #'
 #' Storing list of copula.
 #' @returns A list of copula.
+#' #' @examples
+#' get.copula
+#' #> "gaussian"  "clayton90" "gumbel90"  "gumbel"    "joe90"
 #' @export
 get.copula <- list(
   'gaussian' = list(

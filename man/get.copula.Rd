@@ -12,6 +12,9 @@ get.copula
 }
 \value{
 A list of copula.
+#' @examples
+get.copula
+#> "gaussian"  "clayton90" "gumbel90"  "gumbel"    "joe90"
 }
 \description{
 Storing list of copula.

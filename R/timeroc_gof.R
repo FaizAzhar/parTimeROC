@@ -163,31 +163,3 @@ timeroc_gof <- function(obj){
   }
 
 }
-
-#' nelson_aalen
-#'
-#' @description Function to estimate survival probability using the Nelson-Aalen estimator.
-#'
-#' @param df A data frame with column t = time-to-event, event = status(0 or 1)
-#'
-#' @return A data frame of survival estimate.
-#' @export
-#'
-#' @keywords internal
-nelson_aalen <- function(df){
-  res <- data.frame(tj = sort(unique(df$t)),
-                    nj = 0, dj = 0, cj = 0, hj = 0, Hj = 0)
-  out <- 0; n <- nrow(df); H <- 0
-  for(i in seq_len(nrow(res))){
-    res$nj[i] <- n - out
-    res$dj[i] <- nrow(df[which(df$t == res$tj[i] & df$event == 1),])
-    res$cj[i] <- nrow(df[which(df$t == res$tj[i] & df$event == 0),])
-    res$hj[i] <- res$dj[i]/res$nj[i]
-    H <- H + res$hj[i]
-    res$Hj[i] <- H
-    out <- res$dj[i] + res$cj[i]
-    n <- res$nj[i]
-  }
-
-  return(res)
-}

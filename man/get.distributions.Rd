@@ -16,4 +16,9 @@ A list of distributions.
 \description{
 Storing list of distributions for Biomarker, X and Time-to-event, T.
 }
+\examples{
+get.distributions
+#> "exponential" "weibull"     "gaussian"    "normal"      "lognormal"
+#> "gompertz"    "skewnormal"
+}
 \keyword{datasets}
