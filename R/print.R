@@ -1,3 +1,12 @@
+#' print.TimeROC
+#'
+#' @param x A TimeROC object
+#' @param ... Additional arguments (not use)
+#' @return Summarize model's info in console
+#' @examples
+#' test <- timeroc_obj(dist = 'lognormal-weibull-PH')
+#' print(test)
+#'
 #' @export
 print.TimeROC <- function(x, ...){
   cat("Model Assumptions: ")
@@ -9,6 +18,19 @@ print.TimeROC <- function(x, ...){
   cat('\nTime-to-Event    :',x$t.dist$name,"\n")
 }
 
+#' print.fitTROC
+#'
+#' @param x A fitTROC object
+#' @param ... Additional argument (not use)
+#' @return Summarize estimated parameters in console
+#' @examples
+#' test <- timeroc_obj(dist = 'lognormal-weibull-PH')
+#' rr <- rtimeroc(test, n=300, params.x=c(meanlog=1,sdlog=0.8),
+#'                params.t = c(shape=1.6,scale=1.2),
+#'                params.ph = 1.1)
+#' cc <- timeroc_fit(test, rr$x, rr$t, rr$event)
+#' print(cc)
+#'
 #' @export
 print.fitTROC <- function(x, ...){
   if(is.null(x$copula)){

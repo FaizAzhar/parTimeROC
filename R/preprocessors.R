@@ -152,30 +152,3 @@ extract_from_fitTROC <- function(args){
 
   args
 }
-
-##' helper function to safely convert a Hessian matrix to covariance matrix
-##'
-##' @param hessian hessian matrix to convert to covariance matrix (must be evaluated at MLE)
-##' @param tol.solve tolerance used for solve()
-##' @param tol.evalues accepted tolerance for negative eigenvalues of the covariance matrix
-##' @param ... arguments passed to Matrix::nearPD
-##'
-##' @importFrom Matrix nearPD
-##' @keywords internal
-.hess_to_cov <- function(hessian, tol.solve = 1e-16, tol.evalues = 1e-5, ...) {
-  if(is.null(tol.solve)) tol.solve <- .Machine$double.eps
-  if(is.null(tol.evalues)) tol.evalues <- 1e-5
-  # use solve(.) over chol2inv(chol(.)) to get an inverse even if not PD
-  # less efficient but more stable
-  inv_hessian <- solve(hessian, tol = tol.solve)
-  if (any(is.infinite(inv_hessian)))
-    stop("Inverse Hessian has infinite values.  This might indicate that the model is too complex to be identifiable from the data")
-  evalues <- eigen(inv_hessian, symmetric = TRUE, only.values = TRUE)$values
-  if (min(evalues) < -tol.evalues)
-    warning(sprintf(
-      "Hessian not positive definite: smallest eigenvalue is %.1e (threshold: %.1e). This might indicate that the optimization did not converge to the maximum likelihood, so that the results are invalid. Continuing with the nearest positive definite approximation of the covariance matrix.",
-      min(evalues), -tol.evalues
-    ))
-  # make sure we return a plain positive definite symmetric matrix
-  as.matrix(Matrix::nearPD(inv_hessian, ensureSymmetry = TRUE, ...)$mat)
-}

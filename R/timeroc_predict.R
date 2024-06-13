@@ -31,9 +31,6 @@
 #' start.t <- Sys.time()
 #' jj <- timeroc_predict(cc)
 #' print(Sys.time()-start.t)
-#' start.t <- Sys.time()
-#' jj <- timeroc_predict(cc, t = quantile(rr$t,probs = seq(0,1,by=0.1)))
-#' print(Sys.time()-start.t)
 #'
 #'
 #' # Copula model
@@ -46,9 +43,6 @@
 #' cc <- timeroc_fit(x=rr$x, t=rr$t, event=rr$event, obj = test)
 #' start.t <- Sys.time()
 #' jj <- timeroc_predict(cc)
-#' print(Sys.time()-start.t)
-#' start.t <- Sys.time()
-#' jj <- timeroc_predict(cc, t = quantile(rr$t,probs = seq(0,1,by=0.1)))
 #' print(Sys.time()-start.t)
 #'
 #' @returns A list of ROC dataframe for each time-to-event.

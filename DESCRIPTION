@@ -1,11 +1,15 @@
 Package: parTimeROC
-Title: Parametric Time-Dependent ROC
+Title: Parametric Time-Dependent Receiver Operating Characteristic
 Version: 0.1.0
 Authors@R: 
-    person("Faiz", "Azhar", , "faiz.azhar241@gmail.com", role = c("aut", "cre"),
+    person("Faiz", "Azhar", , "faiz.azhar241@gmail.com", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0009-0003-8017-2565"))
 Maintainer: Faiz Azhar <faiz.azhar241@gmail.com>
-Description: The goal of parTimeROC is to store methods and procedures needed to run the time-dependent ROC analysis parametrically. This package adopts two different theoretical framework to produce the ROC curve which are from the proportional hazard model and copula function. Currently, this package only able to run analysis for single covariate/biomarker with survival time. The future direction for this work is to be able to include analysis for multiple biomarkers with longitudinal measurements.
+Description: Producing the time-dependent receiver operating characteristic (ROC) curve through parametric approaches. Tools for
+    generating random data, fitting, predicting and check goodness of fit are prepared. The methods are
+    developed from the theoretical framework of proportional hazard model and copula functions.
+    Using this package, users can now simulate parametric time-dependent ROC and run experiment
+    to understand the behavior of the curve under different scenario.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

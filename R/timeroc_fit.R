@@ -84,6 +84,7 @@ timeroc_fit <- function(obj, x, t, event, init.param.x = NULL, init.param.t= NUL
   return(out)
 }
 
+# Routine to fit copula
 fit.copula <- function(x, t, res.x, event, method, res.t, x.dist, t.dist, init.param.copula, copula, ci){
   Call3 <- match.call(expand.dots = TRUE)
   res.c <- list()
@@ -138,6 +139,7 @@ fit.copula <- function(x, t, res.x, event, method, res.t, x.dist, t.dist, init.p
   return(res.c)
 }
 
+# Routine to fit time-to-event
 fit.t <- function(x, t, res.x, event, method, x.dist, t.dist,
                   init.param.t, init.param.ph = NULL, iscopula, ci){
 
@@ -232,6 +234,7 @@ fit.t <- function(x, t, res.x, event, method, x.dist, t.dist,
   return(res.t)
 }
 
+# Routine to fit biomarker
 fit.x <- function(x, method, x.dist, init.param.x, ci){
 
   Call <- match.call(expand.dots = TRUE)
@@ -280,4 +283,24 @@ fit.x <- function(x, method, x.dist, init.param.x, ci){
     res.x$aic <- NA
   }
   return(res.x)
+}
+
+# helper function to safely convert a Hessian matrix to covariance matrix
+#' @importFrom Matrix nearPD
+.hess_to_cov <- function(hessian, tol.solve = 1e-16, tol.evalues = 1e-5, ...) {
+  if(is.null(tol.solve)) tol.solve <- .Machine$double.eps
+  if(is.null(tol.evalues)) tol.evalues <- 1e-5
+  # use solve(.) over chol2inv(chol(.)) to get an inverse even if not PD
+  # less efficient but more stable
+  inv_hessian <- solve(hessian, tol = tol.solve)
+  if (any(is.infinite(inv_hessian)))
+    stop("Inverse Hessian has infinite values.  This might indicate that the model is too complex to be identifiable from the data")
+  evalues <- eigen(inv_hessian, symmetric = TRUE, only.values = TRUE)$values
+  if (min(evalues) < -tol.evalues)
+    warning(sprintf(
+      "Hessian not positive definite: smallest eigenvalue is %.1e (threshold: %.1e). This might indicate that the optimization did not converge to the maximum likelihood, so that the results are invalid. Continuing with the nearest positive definite approximation of the covariance matrix.",
+      min(evalues), -tol.evalues
+    ))
+  # make sure we return a plain positive definite symmetric matrix
+  as.matrix(Matrix::nearPD(inv_hessian, ensureSymmetry = TRUE, ...)$mat)
 }
