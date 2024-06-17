@@ -1,9 +1,13 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# parTimeROC
+# parTimeROC: Parametric Time-dependent Receiver Operating Characteristic <img src="man/figures/parTimeROC.png" align="right" alt="" width="160"/>
 
 <!-- badges: start -->
+
+[![R-CMD-check](https://github.com/FaizAzhar/parTimeROC/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/FaizAzhar/parTimeROC/actions/workflows/R-CMD-check.yaml)
+![cran-badge example for parTimeROC
+package](http://www.r-pkg.org/badges/version/parTimeROC)
 <!-- badges: end -->
 
 The goal of parTimeROC is to store methods and procedures needed to run

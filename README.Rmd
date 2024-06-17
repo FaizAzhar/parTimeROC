@@ -13,11 +13,13 @@ knitr::opts_chunk$set(
 )
 ```
 
-# parTimeROC
+# parTimeROC: Parametric Time-dependent Receiver Operating Characteristic <img src="man/figures/parTimeROC.png" align="right" alt="" width="160"/>
 
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/FaizAzhar/parTimeROC/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/FaizAzhar/parTimeROC/actions/workflows/R-CMD-check.yaml)
+![cran-badge example for parTimeROC package](http://www.r-pkg.org/badges/version/parTimeROC)
 <!-- badges: end -->
+
 
 The goal of parTimeROC is to store methods and procedures needed to run the time-dependent ROC analysis parametrically. This package adopts two different theoretical framework to produce the ROC curve which are from the proportional hazard model and copula function. Currently, this package only able to run analysis for single covariate/biomarker with survival time. The future direction for this work is to be able to include analysis for multiple biomarkers with longitudinal measurements. 
 
