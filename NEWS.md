@@ -1,3 +1,7 @@
+# parTimeROC 0.1.1 (2025-04-10) 
+
+Small improvements and fixes in `timeroc_gof` and `timeroc_predict` method. Added acknowledgement section in the DESCRIPTION file.
+
 # parTimeROC 0.1.0 (2024-06-13) 
 
 This is a major release of the `parTimeROC` package which enables running the Time-Dependent Receiver Operating Characteristics (ROC) using parametric approaches. Two models were used which are based on the Proportional Hazard and copula functions.

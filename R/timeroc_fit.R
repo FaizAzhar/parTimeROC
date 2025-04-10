@@ -10,6 +10,7 @@
 #' @param init.param.t Vector of starting value for time-to-event parameter.\cr
 #' @param init.param.copula An integer of starting value for copula parameter.\cr
 #' @param init.param.ph An integer of starting value for association parameter.\cr
+#' @param init_bayes Starting value when running the bayesian estimation.\cr
 #' @param ci An integer 0 to 1 for confidence level.\cr
 #' @param method A string specifying method of estimation. (Default = 'mle') \cr
 #' @param weights Weights to handle Inverse Probability Censoring Weights. \cr
@@ -42,7 +43,7 @@
 #' print(Sys.time()-start.t)
 #'
 #' @export
-#' @importFrom stats qnorm
+#' @importFrom stats qnorm glm confint.default
 timeroc_fit <- function(obj, x, t, event, init.param.x = NULL, init.param.t= NULL,
                     init.param.copula = NULL, init.param.ph = NULL, ci = 0.95,
                     method = "mle", weights = NULL, breakpoints = NULL, init_bayes = NULL){

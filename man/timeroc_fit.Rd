@@ -16,7 +16,8 @@ timeroc_fit(
   ci = 0.95,
   method = "mle",
   weights = NULL,
-  breakpoints = NULL
+  breakpoints = NULL,
+  init_bayes = NULL
 )
 }
 \arguments{
@@ -43,6 +44,8 @@ timeroc_fit(
 \item{weights}{Weights to handle Inverse Probability Censoring Weights. \cr}
 
 \item{breakpoints}{Break points to specify intervals for Piecewise Hazard Model. \cr}
+
+\item{init_bayes}{Starting value when running the bayesian estimation.\cr}
 }
 \value{
 return a list of frequentist or bayesian estimator.

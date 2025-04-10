@@ -4,8 +4,9 @@ Version: 0.1.1
 Authors@R: 
     c(person("Faiz", "Azhar", , "faiz.azhar241@gmail.com", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0009-0003-8017-2565")),
-      person("Adina Najwa", "Kamarudin", , "adina.najwa@utm.my", role = c("aut", "cre", "cph"),
-           comment = c(ORCID = "0009-0003-8017-2565")))
+      person("Adina Najwa", "Kamarudin", , "adina.najwa@utm.my", role = c("cph", "ths"),
+           comment = c(ORCID = "0000-0001-7820-3922")))
+Author: Faiz Azhar [aut, cre, cph], Adina Najwa Kamarudin [cph, ths]
 Acknowledgement: This research is funded by Universiti Teknologi Malaysia (UTM), UTM Fundamental Research (UTMFR). Vote No: Q.J130000.3854.22H03
 Maintainer: Faiz Azhar <faiz.azhar241@gmail.com>
 Description: Producing the time-dependent receiver operating characteristic (ROC) curve through parametric approaches. Tools for
@@ -36,7 +37,8 @@ Imports:
     sn (>= 2.1.1),
     stats,
     survival (>= 3.5.5),
-    VineCopula (>= 2.4.5)
+    VineCopula (>= 2.4.5),
+    GofCens
 LinkingTo: 
     BH (>= 1.66.0),
     Rcpp (>= 0.12.0),

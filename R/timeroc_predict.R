@@ -168,7 +168,7 @@ analysis.landmark <- function(dat, method, x.dist, params.x, ci, t.dist, params.
                     par.ph = fitted.t$par["beta"],
                     se.x = fitted.x$se, se.t = fitted.t$se[tname], se.ph = fitted.t$se['beta'])
       sim.par <- do.call(pars.boot,list(boot.val=B, pargs=pargs, iscopula=iscopula))
-      ret <- do.call(timeroc_pch,list(pars=sim.par, cutoff=xval, t=ttime, model=iscopula,
+      ret <- do.call(timeroc,list(pars=sim.par, cutoff=xval, t=ttime, model=iscopula,
                                   x.dist = x.dist, t.dist = t.dist,
                                   ci = ci, definition = definition, h=h))
       ret[[1]] <- cbind(ret[[1]], assoc = fitted.t$par["beta"])
