@@ -2,8 +2,11 @@ Package: parTimeROC
 Title: Parametric Time-Dependent Receiver Operating Characteristic
 Version: 0.1.0
 Authors@R: 
-    person("Faiz", "Azhar", , "faiz.azhar241@gmail.com", role = c("aut", "cre", "cph"),
-           comment = c(ORCID = "0009-0003-8017-2565"))
+    c(person("Faiz", "Azhar", , "faiz.azhar241@gmail.com", role = c("aut", "cre", "cph"),
+           comment = c(ORCID = "0009-0003-8017-2565")),
+      person("Adina Najwa", "Kamarudin", , "adina.najwa@utm.my", role = c("aut", "cre", "cph"),
+           comment = c(ORCID = "0009-0003-8017-2565")))
+Acknowledgement: This research is funded by Universiti Teknologi Malaysia (UTM), UTM Fundamental Research (UTMFR). Vote No: Q.J130000.3854.22H03
 Maintainer: Faiz Azhar <faiz.azhar241@gmail.com>
 Description: Producing the time-dependent receiver operating characteristic (ROC) curve through parametric approaches. Tools for
     generating random data, fitting, predicting and check goodness of fit are prepared. The methods are
