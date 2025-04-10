@@ -1,6 +1,6 @@
 Package: parTimeROC
 Title: Parametric Time-Dependent Receiver Operating Characteristic
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: 
     c(person("Faiz", "Azhar", , "faiz.azhar241@gmail.com", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0009-0003-8017-2565")),
