@@ -140,6 +140,8 @@ extract_from_fitTROC <- function(args){
   else args$se.ph <- NA
   if(!is.null(args$params.copula)) args$se.c <- args$obj$copula$se
   else args$se.c <- NA
+  if(!is.null(args$obj$t$breakpoints)) args$breakpoints <- args$obj$t$breakpoints
+  else args$breakpoints <- NA
 
   ## ToDo: Future work for landmark analysis
   args$dat <- args$obj$dat

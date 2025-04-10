@@ -12,6 +12,8 @@
 #' @param init.param.ph An integer of starting value for association parameter.\cr
 #' @param ci An integer 0 to 1 for confidence level.\cr
 #' @param method A string specifying method of estimation. (Default = 'mle') \cr
+#' @param weights Weights to handle Inverse Probability Censoring Weights. \cr
+#' @param breakpoints Break points to specify intervals for Piecewise Hazard Model. \cr
 #' @returns return a list of frequentist or bayesian estimator.
 #' @examples
 #' ## fitting copula model
@@ -43,7 +45,8 @@
 #' @importFrom stats qnorm
 timeroc_fit <- function(obj, x, t, event, init.param.x = NULL, init.param.t= NULL,
                     init.param.copula = NULL, init.param.ph = NULL, ci = 0.95,
-                    method = "mle"){
+                    method = "mle", weights = NULL, breakpoints = NULL, init_bayes = NULL){
+
   if (missing(x) | missing(t) | missing(event)) stop("Please provide data for X, T and Event")
 
   ## preprocessing of arguments
@@ -56,7 +59,15 @@ timeroc_fit <- function(obj, x, t, event, init.param.x = NULL, init.param.t= NUL
                                                             data = data.frame(x=x,t=t,event=event))$coef[[1]]
 
   if (is.null(init.param.x)) init.param.x <- x.dist$init(x) else as.list(init.param.x)
-  if (is.null(init.param.t) & !is.list(copula)) {init.param.t <- t.dist$init(t,x,event)}
+  if (is.null(init.param.t) & !is.list(copula)) {
+      if(t.dist$name.abbr != 'pch'){
+        init.param.t <- t.dist$init(t,x,event)
+      } else if(t.dist$name.abbr == 'pch'){
+        init.param.t <- t.dist$init(breakpoints)$rates
+        t.dist$lower <- rep(0,length(init.param.t))
+        t.dist$upper <- rep(Inf, length(init.param.t))
+      }
+    }
   else if (is.null(init.param.t) & is.list(copula)){init.param.t <- t.dist$init(t)}
   else as.list(init.param.t)
 
@@ -64,8 +75,15 @@ timeroc_fit <- function(obj, x, t, event, init.param.x = NULL, init.param.t= NUL
   res.x <- fit.x(x, method, x.dist, init.param.x, ci)
 
   ## Fit t
-  res.t <- fit.t(x, t, res.x, event, method, x.dist, t.dist,
-                 init.param.t, init.param.ph, is.list(copula), ci)
+  if(is.null(weights)) weights <- rep(1,length(t))
+  if(t.dist$name.abbr != 'pch'){
+    res.t <- fit.t(x, t, res.x, event, method, x.dist, t.dist,
+                   init.param.t, init.param.ph, is.list(copula), ci,
+                   weights, breakpoints, init_bayes)
+  }else if(t.dist$name.abbr == "pch"){
+    if(is.null(breakpoints)) stop("Please specify time cutoff")
+    res.t <- fit.tpch(data.frame(x,t,event), breakpoints, ci)
+  }
 
   ##Fit Copula
   if (is.list(copula)){
@@ -141,95 +159,101 @@ fit.copula <- function(x, t, res.x, event, method, res.t, x.dist, t.dist, init.p
 
 # Routine to fit time-to-event
 fit.t <- function(x, t, res.x, event, method, x.dist, t.dist,
-                  init.param.t, init.param.ph = NULL, iscopula, ci){
+                  init.param.t, init.param.ph = NULL, iscopula, ci,
+                  weights = NULL, breakpoints = NULL, init_bayes = NULL){
 
-  Call2 <- match.call(expand.dots = TRUE)
-  res.t <- list()
-  # xargs <- as.list(res.x$par)
-  #
-  # dx <- as.call(c(list(x.dist$density[[2]], x), xargs))
-  #
-  # u <- eval(dx)
-  # u <- log(u)
+    Call2 <- match.call(expand.dots = TRUE)
+    res.t <- list()
+    xargs <- as.list(res.x$par)
 
-  # nx <- length(res.x$par)
+    dx <- as.call(c(list(x.dist$density[[2]], x), xargs))
+    T.end <- max(t)
+    u <- eval(dx)
+    u <- log(u)
 
-  ## Fit t
-  if (method == "mle"){
-    Call2[[1L]] <- quote(stats::optim)
-    if (!iscopula){
-      ll.t <- function(parms, ...){
-        # dx <- as.call(c(list(x.dist$density[[2]], x), parms[1:nx]))
-        # u <- eval(dx)
-        likeli <- event * (log(t.dist$hazard(t,parms)) + x * parms[length(parms)]) -
-          exp(x * parms[length(parms)]) * t.dist$cum.hazard(t, parms)
-        -sum(likeli)
+    # nx <- length(res.x$par)
+
+    ## Fit t
+    if (method == "mle"){
+      Call2[[1L]] <- quote(stats::optim)
+
+      if (!iscopula){
+        ll.t <- function(parms, ...){
+          # dx <- as.call(c(list(x.dist$density[[2]], x), parms[1:nx]))
+          # u <- eval(dx)
+
+          likeli <- weights*(event * (log(t.dist$hazard(t,parms)) + x * parms[length(parms)]) -
+            exp(x * parms[length(parms)]) * t.dist$cum.hazard(t, parms))
+          -sum(likeli)
+        }
+      } else {
+        ll.t <- function(parms, ...){
+          names(parms) <- names(t.dist$pars)
+          d <- as.call(c(list(t.dist$density[[2]],x=t,log=TRUE), as.list(parms)))
+          -sum(eval(d))
+        }
       }
+      Call2$fn <- ll.t
+      if (!iscopula) {
+        init.param.t <- c(init.param.t, beta = init.param.ph)
+        Call2$par <- unlist(init.param.t)
+      } else {Call2$par <- unlist(init.param.t)}
 
-    } else {
-      ll.t <- function(parms, ...){
-        names(parms) <- names(t.dist$pars)
-        d <- as.call(c(list(t.dist$density[[2]],x=t,log=TRUE), as.list(parms)))
-        -sum(eval(d))
-      }
+      Call2$hessian <- TRUE
+      Call2$lower <- c(t.dist$lower, -Inf)
+      Call2$upper <- c(t.dist$upper, Inf)
+      Call2$method <- "L-BFGS-B"
+
+      res.t <- eval.parent(Call2)
+      # if(res.t$convergence > 0L) stop("Time-to-event optimization failed. Consider method = `bayes`")
+      if (!iscopula) {
+          names(res.t$par) <- c(t.dist$pars,'beta')
+      } else {names(res.t$par) <- t.dist$pars}
+      res.t$cov <- .hess_to_cov(res.t$hessian)
+      se <- sqrt(diag(res.t$cov))
+      res.t$ubound <- res.t$par + qnorm(1 - (1 - ci)/2)*se
+      res.t$lbound <- res.t$par - qnorm(1 - (1 - ci)/2)*se
+      res.t$se <- se
+      res.t$aic <- 2 * length(res.t$par) + 2 * res.t$value
+    } else if (method == "bayes" & !iscopula){
+        p <- 1
+        baseline_t <- set_baseline(t.dist$name.abbr)
+        stan_data <- list(time = t, event = event,
+                          X = x, n = length(x),
+                          p = p, baseline = baseline_t)
+        if(is.null(init_bayes)) fitted.t <- rstan::sampling(stanmodels$ph, data = stan_data)
+        else {
+          init_f1 <- function(){init_bayes}
+          fitted.t <- rstan::sampling(stanmodels$ph, data = stan_data, init = init_f1)
+        }
+        summary.t <- rstan::summary(fitted.t, probs = c((1-ci)/2, 1-(1-ci)/2))
+        NN <- nrow(summary.t[["summary"]])
+        res.t$par <- summary.t[["summary"]][-NN,1]
+        res.t$value <- summary.t[["summary"]][NN,1]
+        res.t$ubound <- summary.t[["summary"]][-NN,5]
+        res.t$lbound <- summary.t[["summary"]][-NN,4]
+        res.t$se <- summary.t[["summary"]][-NN,3]
+        res.t$n_eff <- summary.t[["summary"]][-NN,6]
+        res.t$Rhat <- summary.t[["summary"]][-NN,7]
+        names(res.t$ubound) <- names(res.t$lbound) <- names(res.t$se) <- names(res.t$n_eff) <- names(res.t$Rhat) <- names(res.t$par) <- c("beta",t.dist$pars)
+        res.t$aic <- NA
+    } else if (method == "bayes" & iscopula){
+        baseline_t <- set_baseline(t.dist$name.abbr)
+        stan_data <- list(X = t, n = length(t),
+                          baseline = baseline_t)
+        fitted.t <- rstan::sampling(stanmodels$marginal, data = stan_data)
+        summary.t <- rstan::summary(fitted.t, probs = c((1-ci)/2, 1-(1-ci)/2))
+        NN <- nrow(summary.t[["summary"]])
+        res.t$par <- summary.t[["summary"]][-NN,1]
+        res.t$value <- summary.t[["summary"]][NN,1]
+        res.t$ubound <- summary.t[["summary"]][-NN,5]
+        res.t$lbound <- summary.t[["summary"]][-NN,4]
+        res.t$se <- summary.t[["summary"]][-NN,3]
+        res.t$n_eff <- summary.t[["summary"]][-NN,6]
+        res.t$Rhat <- summary.t[["summary"]][-NN,7]
+        names(res.t$ubound) <- names(res.t$lbound) <- names(res.t$se) <- names(res.t$n_eff) <- names(res.t$Rhat) <- names(res.t$par) <- t.dist$pars
+        res.t$aic <- NA
     }
-
-    Call2$fn <- ll.t
-    if (!iscopula) {
-      init.param.t <- c(init.param.t, beta = init.param.ph)
-      Call2$par <- unlist(init.param.t)
-    } else {Call2$par <- unlist(init.param.t)}
-
-    Call2$hessian <- TRUE
-    Call2$lower <- c(t.dist$lower, -Inf)
-    Call2$upper <- c(t.dist$upper, Inf)
-    Call2$method <- "L-BFGS-B"
-    res.t <- eval.parent(Call2)
-    # if(res.t$convergence > 0L) stop("Time-to-event optimization failed. Consider method = `bayes`")
-    if (!iscopula) {
-      names(res.t$par) <- c(t.dist$pars,'beta')
-    } else {names(res.t$par) <- t.dist$pars}
-    res.t$cov <- .hess_to_cov(res.t$hessian)
-    se <- sqrt(diag(res.t$cov))
-    res.t$ubound <- res.t$par + qnorm(1 - (1 - ci)/2)*se
-    res.t$lbound <- res.t$par - qnorm(1 - (1 - ci)/2)*se
-    res.t$se <- se
-    res.t$aic <- 2 * length(res.t$par) + 2 * res.t$value
-  }else if (method == "bayes" & !iscopula){
-    p <- 1
-    baseline_t <- set_baseline(t.dist$name.abbr)
-    stan_data <- list(time = t, event = event,
-                      X = x, n = length(x),
-                      p = p, baseline = baseline_t)
-    fitted.t <- rstan::sampling(stanmodels$ph, data = stan_data)
-    summary.t <- rstan::summary(fitted.t, probs = c((1-ci)/2, 1-(1-ci)/2))
-    NN <- nrow(summary.t[["summary"]])
-    res.t$par <- summary.t[["summary"]][-NN,1]
-    res.t$value <- summary.t[["summary"]][NN,1]
-    res.t$ubound <- summary.t[["summary"]][-NN,5]
-    res.t$lbound <- summary.t[["summary"]][-NN,4]
-    res.t$se <- summary.t[["summary"]][-NN,3]
-    res.t$n_eff <- summary.t[["summary"]][-NN,6]
-    res.t$Rhat <- summary.t[["summary"]][-NN,7]
-    names(res.t$ubound) <- names(res.t$lbound) <- names(res.t$se) <- names(res.t$n_eff) <- names(res.t$Rhat) <- names(res.t$par) <- c("beta",t.dist$pars)
-    res.t$aic <- NA
-  }else if (method == "bayes" & iscopula){
-    baseline_t <- set_baseline(t.dist$name.abbr)
-    stan_data <- list(X = t, n = length(t),
-                      baseline = baseline_t)
-    fitted.t <- rstan::sampling(stanmodels$marginal, data = stan_data)
-    summary.t <- rstan::summary(fitted.t, probs = c((1-ci)/2, 1-(1-ci)/2))
-    NN <- nrow(summary.t[["summary"]])
-    res.t$par <- summary.t[["summary"]][-NN,1]
-    res.t$value <- summary.t[["summary"]][NN,1]
-    res.t$ubound <- summary.t[["summary"]][-NN,5]
-    res.t$lbound <- summary.t[["summary"]][-NN,4]
-    res.t$se <- summary.t[["summary"]][-NN,3]
-    res.t$n_eff <- summary.t[["summary"]][-NN,6]
-    res.t$Rhat <- summary.t[["summary"]][-NN,7]
-    names(res.t$ubound) <- names(res.t$lbound) <- names(res.t$se) <- names(res.t$n_eff) <- names(res.t$Rhat) <- names(res.t$par) <- t.dist$pars
-    res.t$aic <- NA
-  }
 
   return(res.t)
 }
@@ -283,6 +307,71 @@ fit.x <- function(x, method, x.dist, init.param.x, ci){
     res.x$aic <- NA
   }
   return(res.x)
+}
+
+# Routine to fit Piecewise Hazard/Exponential Models
+setup.pch <- function(df, breakpoints){
+  breakpoints <- c(0,breakpoints,Inf)
+  pos <- findInterval(df$t, vec = breakpoints)
+  exposure_time <- numeric(0)
+  # Create event matrix
+  mat_event <- matrix(0, nrow = nrow(df), ncol = (length(breakpoints)-1))
+  for(i in seq_along(df$t)){
+    mat_event[i,pos[i]] <- 1
+    exposure_time[i] <- df$t[i] - breakpoints[pos[i]]
+  }
+
+  # Create time exposure matrix
+  mat_exposure <- matrix(1:(length(breakpoints)-1), nrow = nrow(df),
+                         ncol = (length(breakpoints)-1), byrow = TRUE)
+  full_interval <- diff(breakpoints)
+  for(i in seq_along(df$t)){
+    mat_exposure[i,] <- mat_exposure[i,] - pos[i]
+  }
+
+  mat_exposure[mat_exposure > 0] <- 0
+  mat_exposure[mat_exposure < 0] <- full_interval[col(mat_exposure)][mat_exposure < 0]
+  for(i in seq_along(df$t)){
+    mat_exposure[i,pos[i]] <- exposure_time[i]
+  }
+
+  return(list(mat_event = mat_event, mat_exposure = mat_exposure))
+}
+
+fit.tpch <- function(df, breakpoints, ci){
+  breakpoints <- breakpoints[breakpoints != 0 & !is.infinite(breakpoints)]
+  breakpoints <- sort(breakpoints)
+  labels_break <- paste("(",c(0,breakpoints),",",c(breakpoints,Inf),"]")
+  params_name <- c()
+
+  for (i in seq_along(labels_break)){params_name <- append(params_name, paste0('lambda',i))}
+
+  aug_dat <- survival::survSplit(Surv(t,event)~x,data = df,
+                                 cut = breakpoints, start = "start", episode = "interval")
+
+  aug_dat$exposure <- aug_dat$t - aug_dat$start
+  aug_dat$interval <- factor(aug_dat$interval, labels = labels_break)
+
+  # Fitting GLM
+  fit <- glm(event ~ interval + x + offset(log(exposure)), data = aug_dat, family = "poisson")
+  b <- coef(fit)
+  conf_b <- confint.default(fit, level = ci)
+  res.t <- list()
+  res.t$par <- c(exp(b[1] + c(0,b[2:length(labels_break)])), b[(length(labels_break)+1):length(coef(fit))])
+  names(res.t$par) <- append(params_name, 'beta')
+  res.t$value <- sn::logLik(fit)[1]
+  res.t$counts <- fit$iter
+  res.t$convergence <- fit$converged
+  res.t$hessian <- solve(sn::vcov(fit))
+  res.t$cov <- .hess_to_cov(res.t$hessian)
+  se <- sqrt(diag(res.t$cov))
+  res.t$ubound <- c(exp(conf_b[1,2] + c(0,conf_b[2:length(labels_break),2])), conf_b[(length(labels_break)+1):length(coef(fit)),2])
+  res.t$lbound <- c(exp(conf_b[1,1] + c(0,conf_b[2:length(labels_break),1])), conf_b[(length(labels_break)+1):length(coef(fit)),1])
+  res.t$se <- se
+  names(res.t$se) <- names(res.t$ubound) <- names(res.t$lbound) <- names(res.t$par) <- append(params_name, 'beta')
+  res.t$aic <- fit$aic
+  res.t$breakpoints <- c(0,breakpoints,Inf)
+  return(res.t)
 }
 
 # helper function to safely convert a Hessian matrix to covariance matrix

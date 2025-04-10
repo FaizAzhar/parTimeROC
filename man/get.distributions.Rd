@@ -5,7 +5,7 @@
 \alias{get.distributions}
 \title{get.distributions}
 \format{
-An object of class \code{list} of length 7.
+An object of class \code{list} of length 10.
 }
 \usage{
 get.distributions

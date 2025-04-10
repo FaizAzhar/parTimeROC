@@ -14,7 +14,9 @@ timeroc_fit(
   init.param.copula = NULL,
   init.param.ph = NULL,
   ci = 0.95,
-  method = "mle"
+  method = "mle",
+  weights = NULL,
+  breakpoints = NULL
 )
 }
 \arguments{
@@ -37,6 +39,10 @@ timeroc_fit(
 \item{ci}{An integer 0 to 1 for confidence level.\cr}
 
 \item{method}{A string specifying method of estimation. (Default = 'mle') \cr}
+
+\item{weights}{Weights to handle Inverse Probability Censoring Weights. \cr}
+
+\item{breakpoints}{Break points to specify intervals for Piecewise Hazard Model. \cr}
 }
 \value{
 return a list of frequentist or bayesian estimator.

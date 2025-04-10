@@ -54,7 +54,7 @@ timeroc_predict <- function(obj, t, newx, cutoff = 100, B = 1, type = 'standard'
 
   ## preprocessing of arguments
   se.x <- se.t <- se.c <- x.val <- name.dist.x <- name.dist.t <- dat <- NULL
-  se.ph <- xval <- x.dist <- t.dist <- iscopula <- NULL
+  se.ph <- xval <- x.dist <- t.dist <- iscopula <- breakpoints <- NULL
 
   if(inherits(obj, 'fitTROC')){
     args <- preproc(c(as.list(environment()), call = match.call()),
@@ -81,7 +81,8 @@ timeroc_predict <- function(obj, t, newx, cutoff = 100, B = 1, type = 'standard'
                              params.ph = params.ph, se.x = se.x, se.t = se.t,
                              se.c = se.c, B = B, xval = xval,h=h,
                              t = t, x.dist = x.dist, t.dist = t.dist,
-                             copula = copula, ci = ci, se.ph = se.ph, definition = definition)
+                             copula = copula, ci = ci, se.ph = se.ph,
+                             definition = definition, breakpoints = breakpoints)
   }
 
   class(res) <- "predictTROC"
@@ -92,7 +93,7 @@ timeroc_predict <- function(obj, t, newx, cutoff = 100, B = 1, type = 'standard'
 # function to run standard analysis.
 analysis.standard <- function(iscopula, params.x, params.t, params.copula = NULL,h,
                               params.ph = NULL, se.x, se.t, se.c = NULL, se.ph = NULL,
-                              B, xval, t, x.dist, t.dist, copula = NULL, ci, definition){
+                              B, xval, t, x.dist, t.dist, copula = NULL, ci, definition, breakpoints = NULL){
 
   if(iscopula == 1){
     pargs <- list(par.x = params.x, par.t = params.t,
@@ -107,9 +108,12 @@ analysis.standard <- function(iscopula, params.x, params.t, params.copula = NULL
     pargs <- list(par.x = params.x, par.t = params.t, par.ph = params.ph,
                   se.x = se.x, se.t = se.t, se.ph = se.ph)
     sim.par <- do.call(pars.boot,list(boot.val=B, pargs=pargs, iscopula=iscopula))
+
     ret <- do.call(timeroc,list(pars=sim.par, cutoff=xval, t=t, model=iscopula,
-                                x.dist = x.dist, t.dist = t.dist,
-                                ci = ci, definition = definition,h=h))
+                  x.dist = x.dist, t.dist = t.dist,
+                  ci = ci, definition = definition,h=h,
+                  breakpoints = breakpoints))
+
     for(i in 1:length(ret)){ret[[i]] <- cbind(ret[[i]], assoc = params.ph)}
   }
   return(ret)
@@ -164,7 +168,7 @@ analysis.landmark <- function(dat, method, x.dist, params.x, ci, t.dist, params.
                     par.ph = fitted.t$par["beta"],
                     se.x = fitted.x$se, se.t = fitted.t$se[tname], se.ph = fitted.t$se['beta'])
       sim.par <- do.call(pars.boot,list(boot.val=B, pargs=pargs, iscopula=iscopula))
-      ret <- do.call(timeroc,list(pars=sim.par, cutoff=xval, t=ttime, model=iscopula,
+      ret <- do.call(timeroc_pch,list(pars=sim.par, cutoff=xval, t=ttime, model=iscopula,
                                   x.dist = x.dist, t.dist = t.dist,
                                   ci = ci, definition = definition, h=h))
       ret[[1]] <- cbind(ret[[1]], assoc = fitted.t$par["beta"])
@@ -223,7 +227,8 @@ pars.boot <- function(boot.val, pargs, iscopula){
 
 # --------------------------------------
 # helper function to compute sensitivity and specificity
-timeroc <- function(model, pars, t, cutoff, x.dist, t.dist, copula=NULL, ci, definition, h){
+timeroc <- function(model, pars, t, cutoff, x.dist, t.dist, copula=NULL, ci, definition, h,
+                    breakpoints = NULL){
   xfn <- x.dist$density
   tfn <- t.dist$density
   if(x.dist$name.abbr == "skewnormal") class(xfn) <- "snorm" # there is no sn::psn(..,lower.tail=F)
@@ -232,8 +237,15 @@ timeroc <- function(model, pars, t, cutoff, x.dist, t.dist, copula=NULL, ci, def
     est <- do.call(roc.cop,list(x = cutoff, t = t, xfn = xfn, tfn = tfn,
                                 cfn = copula, pars = pars, ci = ci))
   } else {
-    est <- do.call(roc.ph,list(x = cutoff, t = t, xfn = xfn, tfn = tfn,
-                               pars = pars, ci = ci, definition = definition, h=h))
+    if(t.dist$name.abbr != "pch"){
+      est <- do.call(roc.ph,list(x = cutoff, t = t, xfn = xfn, tfn = tfn,
+                                 pars = pars, ci = ci, definition = definition, h=h))
+    }else{
+      est <- do.call(roc.phpch,list(x = cutoff, t = t, xfn = xfn, tfn = tfn,
+                                 pars = pars, ci = ci, definition = definition, h=h,
+                                 breakpoints = breakpoints))
+    }
+
   }
 
   return(est)
@@ -260,7 +272,7 @@ roc.ph <- function(x,t, xfn, tfn, pars, ci, definition, h){
 
   Survx <- function(pars){
     sx <- do.call(xfn[[3]], c(list(x_val,lower.tail = F),pars))
-    if(inherits(tfn,"snorm")) sx <- 1-sx
+    if(inherits(xfn,"snorm")) sx <- 1-sx
     sx
   }
 
@@ -303,6 +315,104 @@ roc.ph <- function(x,t, xfn, tfn, pars, ci, definition, h){
 
     pt <- apply(pars$par.t,1,Survt)
     pt_h <- apply(pars$par.t,1,Survt_h)
+
+    for(ii in seq_along(x)){
+      x_val <- x[ii]
+      px <- apply(pars$par.x,1,Survx)
+      S.t <- apply(cbind(-Inf,pt,pars$par.b,pt_h,pars$par.x),1,integrate.f)
+      s.ct <- apply(cbind(x_val,pt,pars$par.b,pt_h,pars$par.x),1,integrate.f)
+
+      # specificity
+      spec <- 1 - (s.ct/S.t)
+
+      # sensitivity
+      if(definition == "c/d"){
+        # S.t.cd <- apply(cbind(x_val,pt,pars$par.b,pt_h,pars$par.x),1,integrate.f.cd)
+        # S.t <- apply(cbind(-Inf,pt,pars$par.b,pt_h,pars$par.x),1,integrate.f.cd)
+        sens <- (px-s.ct) / (1-S.t)
+        # sens <- S.t.cd / S.t
+      } else if(definition == "i/d"){
+        f.t <- apply(cbind(-Inf,pt,pars$par.b,pt_h,pars$par.x),1,integrate.f.id)
+        S.t.id <- apply(cbind(x_val,pt,pars$par.b,pt_h,pars$par.x),1,integrate.f.id)
+        sens <- S.t.id/f.t
+      }
+
+      res.boot <- na.omit(cbind(sens, spec))
+      est <- t(colMeans(res.boot))
+      low <- t(apply(res.boot, 2, quantile, probs = pobs))
+      upp <- t(apply(res.boot, 2, quantile, probs = 1-pobs))
+      res.x[ii,] <- cbind(est, low, upp, x_val)
+    }
+
+    res[[as.character(t_val)]] <- res.x
+
+  }
+
+  return(res)
+}
+
+# --------------------------------------
+# Function that will be automatically called within timeroc to compute sensitivity and specificity of a PH mdoel.
+#' @importFrom cubature hcubature
+#' @importFrom stats quantile na.omit
+roc.phpch <- function(x,t, xfn, tfn, pars, ci, definition, h, breakpoints){
+  pobs <- (1-ci)/2
+  res <- list()
+  res.x <- matrix(NA, nrow = length(x), ncol = 7,
+                  dimnames = list(NULL, c('est.sens', 'est.spec', 'low.sens',
+                                          'low.spec', 'upp.sens', 'upp.spec','X')))
+  res.boot <- matrix(NA, nrow = length(pars$par.b), ncol = 2)
+  colnames(res.boot) <- c('sens','spec')
+
+  Survt <- function(pars, breakpoints){
+    st <- do.call(tfn[[3]], c(list(t_val,breakpoints = breakpoints,lower.tail = F,rates=pars)))
+    st
+  }
+
+  Survx <- function(pars){
+    sx <- do.call(xfn[[3]], c(list(x_val,lower.tail = F),pars))
+    if(inherits(xfn,"snorm")) sx <- 1-sx
+    sx
+  }
+
+  Survt_h <- function(pars, breakpoints){
+    st <- do.call(tfn[[3]], c(list(t_val+h,breakpoints = breakpoints, lower.tail = F,rates=pars)))
+    st
+  }
+
+  # For C/D time-dependent ROC
+  # args[1] = x, args[2] = S_0(t), args[3] = beta
+  integrate.f <- function(args){
+    jj <- function(cc) {
+      dx <- do.call(xfn[[2]], c(list(x = cc), args[5:length(args)]))
+      return(args[2]^(exp(args[3] * cc)) * dx)
+    }
+    hcubature(jj, lowerLimit = args[1], upperLimit = Inf)$integral
+  }
+
+  # For I/D time-dependent ROC
+  # args[4] = S_0(t+h)
+  integrate.f.id <- function(args){
+    jj <- function(cc) {
+      dx <- do.call(xfn[[2]], c(list(x = cc), args[5:length(args)]))
+      return((args[2]^(exp(args[3] * cc)) - (args[4])^(exp(args[3] * cc)))/(h) * dx)
+    }
+    hcubature(jj, lowerLimit = args[1], upperLimit = Inf)$integral
+  }
+
+  # # For C/D time-dependent ROC (Pepe definition)
+  # # args[4] = S_0(t+h)
+  # integrate.f.cd <- function(args){
+  #   jj <- function(cc) {
+  #     dx <- do.call(xfn[[2]], c(list(x = cc), args[5:length(args)]))
+  #     return((args[2]^(exp(args[3] * cc)) - (args[4])^(exp(args[3] * cc))) * dx)
+  #   }
+  #   hcubature(jj, lowerLimit = args[1], upperLimit = Inf)$integral
+  # }
+  for(t_val in t){
+
+    pt <- apply(pars$par.t,1,Survt,breakpoints = breakpoints)
+    pt_h <- apply(pars$par.t,1,Survt_h,breakpoints = breakpoints)
 
     for(ii in seq_along(x)){
       x_val <- x[ii]

@@ -46,11 +46,12 @@
 #'
 #' @importFrom stats ppoints ks.test qexp
 #' @importFrom graphics layout
+#' @importFrom GofCens KScens
 
 timeroc_gof <- function(obj){
   ## preprocessing of arguments
   params.t <- params.x <- copula <- params.ph <- params.copula <- NULL
-  iscopula <- x.dist <- t.dist <- NULL
+  iscopula <- x.dist <- t.dist <- breakpoints<- NULL
   df <- obj$dat
 
   args <- preproc(c(as.list(environment()), call = match.call()),
@@ -73,28 +74,88 @@ timeroc_gof <- function(obj){
       main = paste0("Biomarker (K-S : p = ",round(ks_x$p.value,4),")"),
       xlab = paste0("Theoretical ",x.dist$name))
 
+    # # bootstrap Kolmogorov-Smirnov test
+    # boot_obj <- timeroc_obj(paste0(x.dist$name.abbr,"-",t.dist$name.abbr, "-PH"))
+    # NN <- nrow(df)
+    # ks_boot <- c()
+    # for(i in 1:1000){
+    #   idx <- sample(1:NN, NN, replace = TRUE)
+    #   boot_sam <- rtimeroc(boot_obj, n = NN,
+    #                        params.x = params.x,
+    #                        params.t = params.t,
+    #                        params.ph = params.ph)
+    #   boot_fit <- timeroc_fit(boot_obj, x = boot_sam$x, t = boot_sam$t, event = boot_sam$event)
+    #   boot_coxsnell <- t.dist$cum.hazard(boot_sam$t, boot_fit$t$par) * exp(boot_sam$x * boot_fit$t$par[length(boot_fit$t$par)])
+    #   # EDF-test based on Cockeran et al., (2019)
+    #   order_coxsnell <- data.frame('order' = 1:NN, 'coxsnell' = sort(boot_coxsnell))
+    #   ks_pos <- max(order_coxsnell$order/NN-(1-exp(-order_coxsnell$coxsnell)))
+    #   ks_neg <- max((1-exp(-order_coxsnell$coxsnell))-(order_coxsnell$order - 1)/NN)
+    #   ks_boot <- append(ks_boot,max(ks_pos,ks_neg))
+    # }
+    #
+    # ks_dist <- ecdf(ks_boot)
+
     # Cox-Snell Residual
+    df <- df[order(df$x),]
     df <- df[order(df$t),]
-    df$coxsnell <- t.dist$cum.hazard(df$t, params.t) * exp(df$x * params.ph)
-    # H_nelson <- nelson_aalen(df)
-    # df$nelson <- H_nelson$Hj[H_nelson$tj == df$t]
-    theoretical.q <- call("qexp", p = pp, rate = 1)
-    theo.q <- eval(theoretical.q)
-    ks_t <- ks.test(df$coxsnell, theo.q)
-    DescTools::PlotQQ(df$coxsnell, function(p){qexp(p,rate=1)},
-      main = paste0("Time-to-event (K-S : p = ",round(ks_t$p.value,4),")"),
+    if(t.dist$name.abbr != "pch"){
+      df$coxsnell <- t.dist$cum.hazard(df$t, params.t) * exp(df$x * params.ph)
+    } else{
+        df$coxsnell <- as.vector(t.dist$cum.hazard(df$t, breakpoints, rates=params.t) * exp(df$x * params.ph))
+    }
+    # df$coxsnell[which(df$event == 0)] <- df$coxsnell[which(df$event == 0)] + log(2)
+    df$mresid <- df$event - df$coxsnell
+    df$sgn <- 1; df$sgn[which(df$mresid < 0)] <- -1
+    df$devresid <- df$sgn*sqrt(-2*(df$mresid + df$event * log(df$event - df$mresid)))
+    fit.err <- coxph(Surv(coxsnell,event)~1, data = df, method = 'breslow')
+    df$Hcoxsnell <- predict(fit.err, type = 'expected')
+
+    # order_coxsnell <- data.frame('order' = 1:NN, 'coxsnell' = sort(df$coxsnell))
+    # ks_pos <- max(order_coxsnell$order/NN-(1-exp(-order_coxsnell$coxsnell)))
+    # ks_neg <- max((1-exp(-order_coxsnell$coxsnell))-(order_coxsnell$order - 1)/NN)
+    # ks_n <- max(ks_pos,ks_neg)
+    #
+    # # Bolshev correction
+    # ks <- (6*NN * ks_n + 1) / (6*sqrt(NN))
+    # ks_t <- list(statistic = ks, p.value = 1-ks_dist(ks))
+
+    # # TO-DO (Breslow Estimator & LOESS)
+    # fit <- coxph(formula = Surv(t, event) ~ 1, data = df, method = "breslow")
+    # surv_table <- basehaz(fit)
+    # # naest1 <- cumsum(fit$n.event/fit$n.risk)
+    # # surv_table <- data.frame("time" = fit$time, "hazard" = naest1)
+    #
+    # df <- merge(df, surv_table[, c("time", "hazard")], by.x = "t", by.y = "time", all.x = TRUE)
+    # df <- df[order(df$t), ]  # Reordering if necessary
+    # colnames(df)[colnames(df) == "hazard"] <- "H_NA"
+
+    # theoretical.q <- ecdf(df$coxsnell)
+    # theo.q <- theoretical.q(df$coxsnell)
+    # theo.expo <- pexp(df$coxsnell)
+    # ks_t <- ks.test(df$coxsnell, 'pexp')
+    # ks_t <- ks.test(df$coxsnell, df$Hcoxsnell)
+    ks_t <- GofCens::KScens(Surv(coxsnell,event)~1, data = df, distr = "exponential")$Test
+    DescTools::PlotQQ(df$coxsnell[which(df$event == 1)], function(p){qexp(p,rate=1)},
+      main = paste0("Time-to-event (K-S : p = ",round(ks_t[2],4),")"),
       xlab = "Theoretical Exponential",
       ylab = "Cox-Snell Residuals")
 
-    # plot(nelson~coxsnell, data = df, main = paste0('Time-to-event ',
+    # df <- df[order(df$coxsnell),]
+    # loess_PH <- loess(H_NA~coxsnell, data = df, span = 0.5)
+    # smooth_residual <- predict(loess_PH)
+    #
+    # plot(df$coxsnell, df$H_NA, main = paste0('Time-to-event ',
     #                                            '(K-S : p = ',round(ks_t$p.value,4),
     #                                            ')'),
     #      xlab = "Cox-Snell Residual",
-    #      ylab = "Cum.Haz (Nelson-Aalen)")
+    #      ylab = "Cum.Haz",
+    #      xlim = c(0,max(df$coxsnell)),
+    #      ylim = c(0,max(df$H_NA)))
+    # lines(smooth_residual, x = df$coxsnell, col = 'red')
     # abline(a=0,b=1, lty='dashed', col= 'blue')
 
     layout(matrix(c(1), nrow = 1, ncol = 1))
-    return(list(ks_x = ks_x, ks_t = ks_t))
+    return(list(ks_x = ks_x, ks_t = ks_t, df = df))
   }
   else{
     # layout(matrix(c(1, 0, 1,  3, 2, 3, 2, 0), nrow = 2, ncol = 4))

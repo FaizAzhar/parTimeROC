@@ -109,7 +109,7 @@ transformed data{
       }
     }else if(baseline == 6){ // Skew Normal
       loc ~ normal(0,10);
-      omega ~ gamma(1, 1);
+      omega ~ gamma(0.1, 1);
       skew ~ normal(0,10);
       for(i in 1:n){
         lpdf[i] = skew_normal_lpdf(y[i]|loc, omega, skew);

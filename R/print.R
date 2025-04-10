@@ -41,15 +41,15 @@ print.fitTROC <- function(x, ...){
                         se = round(x$t$se["beta"],4))
   } else tparname <- names(x$t$par)
 
-  x.dat <- data.frame(est = round(x$x$par,4),
-                      low = round(x$x$lbound,4),
-                      upper = round(x$x$ubound,4),
-                      se = round(x$x$se,4))
+  x.dat <- data.frame(est = x$x$par,
+                      low = x$x$lbound,
+                      upper = x$x$ubound,
+                      se = x$x$se)
 
-  t.dat <- data.frame(est = round(x$t$par[tparname],4),
-                      low = round(x$t$lbound[tparname],4),
-                      upper = round(x$t$ubound[tparname],4),
-                      se = round(x$t$se[tparname],4))
+  t.dat <- data.frame(est = x$t$par[tparname],
+                      low = x$t$lbound[tparname],
+                      upper = x$t$ubound[tparname],
+                      se = x$t$se[tparname])
 
   if(!is.null(x$copula)){
     c.dat <- data.frame(est = round(x$copula$par,4),

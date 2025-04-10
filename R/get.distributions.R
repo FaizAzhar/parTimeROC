@@ -140,7 +140,7 @@ get.distributions <- list(
         shape <- fsr.gompertz$res[1,1]
         rate <- fsr.gompertz$res[2,1]
       }
-      list(shape = shape, rate = rate)
+      list(shape = shape, rate = abs(rate))
     },
     density = c(flexsurv::rgompertz, flexsurv::dgompertz, flexsurv::pgompertz,
                 flexsurv::qgompertz, flexsurv::hgompertz, flexsurv::Hgompertz),
@@ -150,7 +150,7 @@ get.distributions <- list(
     cum.hazard = function(t, parms){
       get.distributions[['gompertz']]$density[[6]](t, shape = parms[1], rate = parms[2])
     },
-    lower = c(-Inf,0.01),
+    lower = c(-Inf,0.001),
     upper = c(Inf, Inf)
   ),
 
@@ -181,6 +181,88 @@ get.distributions <- list(
     },
     lower = c(-Inf, 0.01, -Inf),
     upper = c(Inf, Inf, Inf)
+  ),
+
+  'pch' = list(
+    name = "Piecewise Hazard",
+    name.abbr = 'pch',
+    pars = c("breakpoints","rates"),
+    init = function(breakpoints, ...){
+      a <- rep(0.1,length(breakpoints)-1)
+      list(breakpoints = breakpoints, rates = a)
+    },
+    density = c(rpch = function(n, breakpoints, rates){
+                  p <- runif(n)
+                  get.distributions$pch$density$qpch(p, breakpoints, rates)
+                },
+                dpch = function(x, breakpoints, rates, lower.tail = TRUE, log.p = FALSE, ...){
+                  res <- get.distributions$pch$hazard(x, breakpoints, rates,...) *
+                    exp(-get.distributions$pch$cum.hazard(x, breakpoints, rates,...))
+                  res
+                },
+                ppch = function(q, breakpoints, rates, lower.tail = TRUE, log.p = FALSE, ...){
+                  H_t <- get.distributions$pch$cum.hazard(q, breakpoints, rates,...)
+                  res <- 1 - exp(-H_t)
+                  if (log.p & lower.tail){
+                    res <- log(res)
+                  } else if(log.p & !lower.tail){
+                    res <- log(1-res)
+                  } else if(!log.p & !lower.tail){
+                    res <- 1-res
+                  }
+                  res
+                },
+                qpch = function(p, breakpoints, rates, lower.tail = TRUE, log.p = FALSE, ...){
+                  if(length(rates) != length(breakpoints) - 1) stop("Length rated is not equal to total intervals")
+                  if (log.p) p <- exp(p)
+                  if(any(p >= 1)) stop("Quantile must be < 1")
+                  if(any(p <= 0)) stop("Quantile must be > 0")
+                  if(!lower.tail) p <- 1-p
+                  res <- numeric(0)
+                  H_t <- c(0,cumsum(diff(breakpoints) * rates))
+
+                  for(i in seq_along(p)){
+                    Hcheck <- -log(1-p[i])
+                    pos <- findInterval(Hcheck, vec = H_t)
+                    if(breakpoints[pos+1] == max(breakpoints) & !is.infinite(breakpoints[pos+1])) upper <- breakpoints[pos+1] - 0.01
+                    else if(is.numeric(breakpoints[pos+1])) upper <- breakpoints[pos+1]
+                    res[i] <- uniroot(f=function(q){
+                      get.distributions$pch$density$ppch(q,breakpoints,rates) - p[i]
+                    }, interval = c(breakpoints[pos],upper))$root
+                  }
+                  res
+                }),
+    hazard = function(t, breakpoints, rates,...){
+      setup <- setup.pch(t, breakpoints)
+      h <- setup$mat_event %*% rates
+      h
+    },
+    cum.hazard = function(t, breakpoints, rates,...){
+      setup <- setup.pch(t, breakpoints)
+      H <- setup$mat_exposure %*% rates
+      H
+    }
+  ),
+
+  'llogis' = list(
+    name = "Log-logistic",
+    name.abbr = 'llogis',
+    pars = c("shape","scale"),
+    init = function(t, ...){
+      list(shape = 1, scale = 1)
+    },
+    density = c(flexsurv::rllogis, flexsurv::dllogis, flexsurv::pllogis, flexsurv::qllogis),
+    hazard = function(t,parms){
+      logdens <- log(flexsurv::dllogis(t, shape = parms[1], scale = parms[2]))
+      logsurv <- log(1-flexsurv::pllogis(t, shape = parms[1], scale = parms[2]))
+      loghaz <- logdens - logsurv
+      exp(loghaz)
+    },
+    cum.hazard = function(t, parms){
+      -log(1-flexsurv::pllogis(t, shape = parms[1], scale = parms[2]))
+    },
+    lower = c(0, 0),
+    upper = c(Inf, Inf)
   )
 )
 

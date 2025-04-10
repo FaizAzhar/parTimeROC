@@ -54,6 +54,14 @@ rtimeroc <- function(obj, n, censor.rate = 0, params.x, params.t, params.copula,
     S.t0 <- exp(log(S.tx)/exp(x * params.ph))
     targs <- as.list(params.t)
     if (t.dist$name == "Skew-Normal") qbase <- as.call(c(list(t.dist$density[[4]], p = 1-S.t0), targs))
+    else if (t.dist$name == "Piecewise Hazard") {
+      breakpoints <- params.t[1:((length(params.t)+1)/2)]
+      rates <- params.t[((length(params.t)+1)/2 + 1): length(params.t)]
+      qbase <- as.call(c(list(t.dist$density[[4]],
+                              p = S.t0, lower.tail = FALSE,
+                              breakpoints = breakpoints,
+                              rates = rates)))
+    }
     else qbase <- as.call(c(list(t.dist$density[[4]], p = S.t0, lower.tail = FALSE), targs))
     t <- eval(qbase)
   } else if(is.list(copula)){
