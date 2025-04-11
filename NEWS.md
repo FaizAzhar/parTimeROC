@@ -1,6 +1,7 @@
 # parTimeROC 0.1.1 (2025-04-10) 
 
-Small improvements and fixes in `timeroc_gof` and `timeroc_predict` method. Added acknowledgement section in the DESCRIPTION file.
+* Small improvements and fixes in `timeroc_gof` and `timeroc_predict` method. 
+* Added contributors in the DESCRIPTION file.
 
 # parTimeROC 0.1.0 (2024-06-13) 
 

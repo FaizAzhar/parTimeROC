@@ -5,9 +5,8 @@ Authors@R:
     c(person("Faiz", "Azhar", , "faiz.azhar241@gmail.com", role = c("aut", "cre", "cph"),
            comment = c(ORCID = "0009-0003-8017-2565")),
       person("Adina Najwa", "Kamarudin", , "adina.najwa@utm.my", role = c("cph", "ths"),
-           comment = c(ORCID = "0000-0001-7820-3922")))
-Author: Faiz Azhar [aut, cre, cph], Adina Najwa Kamarudin [cph, ths]
-Acknowledgement: This research is funded by Universiti Teknologi Malaysia (UTM), UTM Fundamental Research (UTMFR). Vote No: Q.J130000.3854.22H03
+           comment = c(ORCID = "0000-0001-7820-3922")),
+      person("Universiti Teknologi Malaysia, UTM", role = "cph"))
 Maintainer: Faiz Azhar <faiz.azhar241@gmail.com>
 Description: Producing the time-dependent receiver operating characteristic (ROC) curve through parametric approaches. Tools for
     generating random data, fitting, predicting and check goodness of fit are prepared. The methods are
@@ -15,6 +14,8 @@ Description: Producing the time-dependent receiver operating characteristic (ROC
     Using this package, users can now simulate parametric time-dependent ROC and run experiment
     to understand the behavior of the curve under different scenario.
 License: MIT + file LICENSE
+URL: https://github.com/FaizAzhar/parTimeROC
+BugReports: https://github.com/FaizAzhar/parTimeROC/issues
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.1
