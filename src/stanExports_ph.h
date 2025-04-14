@@ -54,7 +54,7 @@ static constexpr std::array<const char*, 144> locations_array__ =
   " (in 'string', line 81, column 4 to line 84, column 5)",
   " (in 'string', line 85, column 4 to column 13)",
   " (in 'string', line 121, column 6 to column 25)",
-  " (in 'string', line 122, column 6 to column 26)",
+  " (in 'string', line 122, column 6 to column 28)",
   " (in 'string', line 123, column 6 to column 26)",
   " (in 'string', line 125, column 8 to column 58)",
   " (in 'string', line 126, column 8 to column 60)",
@@ -810,8 +810,8 @@ public:
                     lp_accum__.add(stan::math::normal_lpdf<propto__>(loc, 0,
                                      10));
                     current_statement__ = 26;
-                    lp_accum__.add(stan::math::gamma_lpdf<propto__>(omega, 1,
-                                     1));
+                    lp_accum__.add(stan::math::gamma_lpdf<propto__>(omega,
+                                     0.1, 1));
                     current_statement__ = 27;
                     lp_accum__.add(stan::math::normal_lpdf<propto__>(skew, 0,
                                      10));

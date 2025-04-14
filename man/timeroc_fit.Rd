@@ -54,6 +54,7 @@ return a list of frequentist or bayesian estimator.
 Fit TimeROC using Maximum Likelihood Estimator.
 }
 \examples{
+\dontrun{
 ## fitting copula model
 test <- timeroc_obj(dist = 'gompertz-gompertz-copula', copula = "gumbel90")
 set.seed(23456)
@@ -78,5 +79,5 @@ plot(t~x, rr)
 start.t <- Sys.time()
 cc <- timeroc_fit(rr$x, rr$t, rr$event, obj = test)
 print(Sys.time()-start.t)
-
+}
 }

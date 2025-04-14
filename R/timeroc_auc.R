@@ -6,6 +6,7 @@
 #' @return A dataframe of the area under the ROC curve
 #' @export
 #' @examples
+#' \dontrun{
 #' test <- timeroc_obj('normal-weibull-copula', copula = 'clayton90')
 #' print(test)
 #'
@@ -20,6 +21,7 @@
 #' jj <- timeroc_predict(cc, t = quantile(rr$t, probs = c(0.25,0.5,0.75)))
 #'
 #' timeroc_auc(jj)
+#' }
 #' @importFrom DescTools AUC
 
 timeroc_auc <- function(obj){

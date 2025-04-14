@@ -8,6 +8,7 @@
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' # Copula model
 #' rt <- timeroc_obj("normal-weibull-copula",copula="clayton90")
 #' set.seed(1)
@@ -25,6 +26,7 @@
 #' jj <- timeroc_fit(test, rr$x, rr$t, rr$event)
 #'
 #' cc <- timeroc_gof(jj)
+#' }
 #'
 #' @importFrom stats ppoints ks.test qexp
 #' @importFrom graphics layout

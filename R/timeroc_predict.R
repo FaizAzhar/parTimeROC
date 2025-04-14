@@ -20,6 +20,7 @@
 #' @param seed A numeric to pass in set.seed.\cr
 #'
 #' @examples
+#'\dontrun{
 #' # PH model
 #' test <- timeroc_obj('normal-weibull-PH')
 #' set.seed(23456)
@@ -44,7 +45,7 @@
 #' start.t <- Sys.time()
 #' jj <- timeroc_predict(cc)
 #' print(Sys.time()-start.t)
-#'
+#'}
 #' @returns A list of ROC dataframe for each time-to-event.
 #' @export
 timeroc_predict <- function(obj, t, newx, cutoff = 100, B = 1, type = 'standard',

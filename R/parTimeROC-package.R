@@ -9,7 +9,8 @@
 #' @import methods
 #' @import Rcpp
 #' @import rstantools
-#' @importFrom RcppParallel RcppParallelLibs CxxFlags
+#' @importFrom RcppParallel RcppParallelLibs
+#' @importFrom rstantools rstan_config
 #' @importFrom rstan sampling
 #' @importFrom moments skewness
 #'

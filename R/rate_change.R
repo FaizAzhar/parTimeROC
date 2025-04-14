@@ -21,6 +21,7 @@
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' ## Using 'fitROC' object
 #' test <- timeroc_obj("normal-weibull-copula", copula = "gaussian")
 #' rr <- rtimeroc(test, n=500,
@@ -36,7 +37,7 @@
 #' params.t = c(shape=1.6, scale=5),
 #' params.ph = 1)
 #' ee <- rate_change(test, t = c(.1,.2))
-#'
+#'}
 
 
 rate_change <- function(obj, t, n=3, type = 'standard',

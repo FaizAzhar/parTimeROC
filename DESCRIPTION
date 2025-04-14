@@ -23,23 +23,23 @@ Biarch: true
 Depends: 
     R (>= 3.4.0)
 Imports: 
-    methods,
-    moments,
-    RcppParallel (>= 5.0.1),
-    Rcpp (>= 0.12.0),
-    rstan (>= 2.18.1),
-    rstantools (>= 2.3.1),
     cubature,
     DescTools,
     flexsurv (>= 2.2.2),
+    GofCens,
     graphics,
     Matrix,
+    methods,
+    moments,
     mvtnorm,
+    Rcpp (>= 0.12.0),
+    RcppParallel (>= 5.0.1),
+    rstan (>= 2.18.1),
+    rstantools (>= 2.4.0),
     sn (>= 2.1.1),
     stats,
     survival (>= 3.5.5),
-    VineCopula (>= 2.4.5),
-    GofCens
+    VineCopula (>= 2.4.5)
 LinkingTo: 
     BH (>= 1.66.0),
     Rcpp (>= 0.12.0),

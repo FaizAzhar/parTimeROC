@@ -54,6 +54,7 @@ A list of rate change dt, dx and the angle between these rate of change.
 Function to compute the rate change of the ROC with respect to dx and dt.
 }
 \examples{
+\dontrun{
 ## Using 'fitROC' object
 test <- timeroc_obj("normal-weibull-copula", copula = "gaussian")
 rr <- rtimeroc(test, n=500,
@@ -69,5 +70,5 @@ params.x = c(mean=5, sd=0.8),
 params.t = c(shape=1.6, scale=5),
 params.ph = 1)
 ee <- rate_change(test, t = c(.1,.2))
-
+}
 }

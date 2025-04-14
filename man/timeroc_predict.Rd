@@ -63,6 +63,7 @@ A list of ROC dataframe for each time-to-event.
 Predict time-dependent ROC from fitted model.
 }
 \examples{
+\dontrun{
 # PH model
 test <- timeroc_obj('normal-weibull-PH')
 set.seed(23456)
@@ -87,5 +88,5 @@ cc <- timeroc_fit(x=rr$x, t=rr$t, event=rr$event, obj = test)
 start.t <- Sys.time()
 jj <- timeroc_predict(cc)
 print(Sys.time()-start.t)
-
+}
 }

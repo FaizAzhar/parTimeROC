@@ -16,6 +16,7 @@ A dataframe of the area under the ROC curve
 Function to compute the area under the ROC curve
 }
 \examples{
+\dontrun{
 test <- timeroc_obj('normal-weibull-copula', copula = 'clayton90')
 print(test)
 
@@ -30,4 +31,5 @@ cc <- timeroc_fit(x=rr$x, t=rr$t, event=rr$event, obj = test)
 jj <- timeroc_predict(cc, t = quantile(rr$t, probs = c(0.25,0.5,0.75)))
 
 timeroc_auc(jj)
+}
 }
